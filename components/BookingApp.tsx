@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { PAGE_SIZE, stands, Stand } from "@/lib/stands";
 import { euro } from "@/lib/money";
 import PdfStandplan from "@/components/PdfStandplan";
@@ -52,8 +52,10 @@ export default function BookingApp() {
   const [hoveredSection, setHoveredSection] = useState<Section | null>(null);
   const [meters, setMeters] = useState<MeterFilter>("all");
   const [statuses, setStatuses] = useState<Record<string, Availability>>({});
+  const [zoom, setZoom] = useState(1);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const mapScrollRef = useRef<HTMLDivElement>(null);
 
   const selected = selectedIds.map((id) => stands.find((stand) => stand.id === id)).filter(Boolean) as Stand[];
   const focusSection = hoveredSection || section;
@@ -149,8 +151,16 @@ export default function BookingApp() {
     [section, meters]
   );
 
-  const freeCount = (value: Section) =>
-    stands.filter((stand) => stand.section === value && availability(stand) === "free").length;
+  const freeCount = (value: Section) => freeCandidates(value, meters).length;
+
+  function resetMapView() {
+    setZoom(1);
+    window.requestAnimationFrame(() => mapScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
+  }
+
+  function changeZoom(direction: -1 | 1) {
+    setZoom((current) => Math.min(2.5, Math.max(1, Math.round((current + direction * 0.25) * 100) / 100)));
+  }
 
   function chooseSection(value: Section) {
     const keep = section === value ? selectedIds[0] : undefined;
@@ -158,6 +168,7 @@ export default function BookingApp() {
     setHoveredSection(null);
     setMessage(null);
     setSelectedIds(autoPick(value, standCount, meters, keep));
+    resetMapView();
   }
 
   function setStandCount(value: StandCount) {
@@ -182,7 +193,7 @@ export default function BookingApp() {
       const next = autoPick(section, standCount, value);
       setSelectedIds(next);
       if (next.length < standCount) {
-        setMessage("Für diesen Größenfilter sind aktuell nicht genug freie Stände verfügbar.");
+        setMessage("Für diese Standgröße sind aktuell nicht genug freie Plätze verfügbar.");
       }
     }
   }
@@ -280,21 +291,20 @@ export default function BookingApp() {
           <div className="toolbar">
             <span className="toolbarPrompt">
               {section
-                ? `Bereich ${section} · ${standCount === 1 ? "1 Stand" : "2 Stände"} ausgewählt. Du kannst die Auswahl direkt im Plan ändern.`
-                : "Fahre über A, B oder C und wähle deinen Bereich."}
+                ? `Bereich ${section} · ${standCount === 1 ? "1 Stand" : "2 Stände"}. Die Vorauswahl kannst du direkt im Plan ändern.`
+                : "Wähle A, B oder C – danach schlagen wir dir automatisch einen freien Stand vor."}
             </span>
-            {section && (
-              <div className="filterGroup">
-                <button className={meters === "all" ? "chip active" : "chip"} onClick={() => setMeterFilter("all")}>Alle Größen</button>
-                <button className={meters === "2" ? "chip active" : "chip"} onClick={() => setMeterFilter("2")}>2 m</button>
-                <button className={meters === "3" ? "chip active" : "chip"} onClick={() => setMeterFilter("3")}>3 m</button>
-              </div>
-            )}
+            <div className="zoomControls" role="group" aria-label="Karte zoomen">
+              <button type="button" onClick={() => changeZoom(-1)} disabled={zoom <= 1} aria-label="Karte verkleinern">−</button>
+              <button type="button" className="zoomValue" onClick={resetMapView} title="Gesamtansicht">{Math.round(zoom * 100)}%</button>
+              <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= 2.5} aria-label="Karte vergrößern">+</button>
+              <button type="button" className="fitButton" onClick={resetMapView}>Gesamt</button>
+            </div>
           </div>
 
           <div className="legend">
             {!section ? (
-              <span>Die Karte ist bewusst reduziert – die farbigen Halos zeigen dir den aktiven Bereich.</span>
+              <span>Gesamtansicht zuerst – bei Bedarf mit + / − in die Karte hineinzoomen.</span>
             ) : (
               <>
                 <span><i className="dot free" /> frei</span>
@@ -305,8 +315,16 @@ export default function BookingApp() {
             )}
           </div>
 
-          <div className="mapScroll">
-            <div className="mapStage">
+          <div
+            ref={mapScrollRef}
+            className={`mapScroll ${zoom > 1 ? "zoomed" : "fitView"}`}
+            onWheel={(event) => {
+              if (!(event.ctrlKey || event.metaKey)) return;
+              event.preventDefault();
+              changeZoom(event.deltaY > 0 ? -1 : 1);
+            }}
+          >
+            <div className="mapStage" style={{ width: `${zoom * 100}%` }}>
               <PdfStandplan />
               <svg
                 viewBox={`0 0 ${PAGE_SIZE.width} ${PAGE_SIZE.height}`}
@@ -383,8 +401,8 @@ export default function BookingApp() {
 
           <p className="mapHint">
             {!section
-              ? "Bereich anklicken – danach ist automatisch ein freier Stand vorausgewählt."
-              : "Die Vorauswahl ist nur ein Vorschlag. Klicke auf freie Standnummern, wenn du einen anderen Platz möchtest."}
+              ? "Der ganze Plan bleibt zunächst sichtbar. Wähle einen Bereich oder zoome mit + / −; am Rechner geht auch Strg/⌘ + Scrollen."
+              : "Der vorgeschlagene Stand ist bereits ausgewählt. Du kannst ihn einfach anklicken oder einen anderen freien Stand wählen."}
           </p>
         </section>
 
@@ -394,29 +412,46 @@ export default function BookingApp() {
               <div>
                 <p className="eyebrow">Deine Auswahl</p>
                 <h2>{selected.map((stand) => `Stand ${stand.id}`).join(" + ")}</h2>
-                <p>
-                  Bereich {selected[0].section} · {selected.map((stand) => `${stand.meters} m`).join(" + ")}
-                </p>
+                <p>Bereich {selected[0].section} · {selected.map((stand) => `${stand.meters} m`).join(" + ")}</p>
               </div>
               <button className="textButton" onClick={() => setSelectedIds([])}>ändern</button>
             </div>
           )}
 
           <div className={selected.length ? "compactControls" : "setupControls"}>
-            <div className="countRow">
-              <div>
-                <p className="eyebrow">Wie viel Platz?</p>
-                <strong>{standCount === 1 ? "Ein Stand" : "Zwei Stände"}</strong>
+            <div className="choiceBlock">
+              <div className="choiceLabel">
+                <p className="eyebrow">Deine Buchung</p>
+                <strong>Wie viel Platz brauchst du?</strong>
               </div>
-              <div className="segmented" role="group" aria-label="Anzahl Standplätze">
-                <button className={standCount === 1 ? "active" : ""} onClick={() => setStandCount(1)}>1</button>
-                <button className={standCount === 2 ? "active" : ""} onClick={() => setStandCount(2)}>2</button>
+
+              <div className="choiceRow">
+                <span>Anzahl</span>
+                <div className="segmented" role="group" aria-label="Anzahl Standplätze">
+                  <button className={standCount === 1 ? "active" : ""} onClick={() => setStandCount(1)}>1 Stand</button>
+                  <button className={standCount === 2 ? "active" : ""} onClick={() => setStandCount(2)}>2 Stände</button>
+                </div>
+              </div>
+
+              <div className="choiceRow sizeChoiceRow">
+                <span>Standgröße</span>
+                <div className="sizeSegmented" role="group" aria-label="Standgröße">
+                  <button className={meters === "all" ? "active" : ""} onClick={() => setMeterFilter("all")}>
+                    <b>Egal</b><small>passender freier Platz</small>
+                  </button>
+                  <button className={meters === "2" ? "active" : ""} onClick={() => setMeterFilter("2")}>
+                    <b>2 m</b><small>15 €</small>
+                  </button>
+                  <button className={meters === "3" ? "active" : ""} onClick={() => setMeterFilter("3")}>
+                    <b>3 m</b><small>22,50 €</small>
+                  </button>
+                </div>
               </div>
             </div>
 
             {selected.length ? (
               <div className="miniAreaSwitch">
-                <span>Bereich</span>
+                <span>Bereich wechseln</span>
                 <div>
                   {sections.map((value) => (
                     <button
@@ -456,7 +491,7 @@ export default function BookingApp() {
                       <span className="areaCardCopy">
                         <strong>{sectionInfo[value].title}</strong>
                         <span>{sectionInfo[value].text}</span>
-                        <small>{freeCount(value)} Standplätze aktuell frei</small>
+                        <small>{freeCount(value)} passende Standplätze aktuell frei</small>
                       </span>
                       <span className="areaArrow">→</span>
                     </button>
@@ -470,7 +505,7 @@ export default function BookingApp() {
             <div className="emptyState areaChooseHint">
               <span className="bigArrow">↖</span>
               <h2>Wähle zuerst einen Bereich.</h2>
-              <p>Wir schlagen dir dort automatisch einen freien Stand vor.</p>
+              <p>Größe und Anzahl kannst du schon oben festlegen. Danach schlagen wir automatisch passende freie Plätze vor.</p>
             </div>
           ) : selected.length < standCount ? (
             <div className="emptyState standStep">
