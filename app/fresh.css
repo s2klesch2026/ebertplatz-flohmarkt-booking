@@ -191,6 +191,7 @@ h1 {
 }
 
 .mapScroll.fitView {
+  max-height: none !important;
   overflow: hidden !important;
 }
 
@@ -400,7 +401,7 @@ h1 {
     margin-left: 0;
   }
 
-  .mapScroll {
+  .mapScroll.zoomed {
     max-height: 62vh !important;
   }
 }
