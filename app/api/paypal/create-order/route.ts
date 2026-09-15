@@ -4,7 +4,7 @@ import { createPayPalOrder } from "@/lib/paypal";
 
 export async function POST(request: Request) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return NextResponse.json({ error: "Supabase ist noch nicht verbunden." }, { status: 503 });
+  if (!supabase) return NextResponse.json({ error: "Supabase ist noch nicht vollständig verbunden." }, { status: 503 });
 
   const { bookingId } = await request.json();
   const { data: booking, error } = await supabase
@@ -30,6 +30,11 @@ export async function POST(request: Request) {
   const approveUrl = order.links?.find((link) => link.rel === "payer-action" || link.rel === "approve")?.href;
   if (!approveUrl) return NextResponse.json({ error: "PayPal hat keinen Zahlungslink geliefert." }, { status: 502 });
 
-  await supabase.from("bookings").update({ paypal_order_id: order.id }).eq("id", booking.id);
+  const { error: saveError } = await supabase.rpc("set_paypal_order", {
+    p_booking_id: booking.id,
+    p_paypal_order_id: order.id,
+  });
+  if (saveError) return NextResponse.json({ error: "Die PayPal-Zahlung konnte nicht mit der Buchung verknüpft werden." }, { status: 409 });
+
   return NextResponse.json({ approveUrl });
 }
