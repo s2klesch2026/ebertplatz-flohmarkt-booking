@@ -70,18 +70,27 @@ h1 { margin: 0; font-size: clamp(34px, 5vw, 72px); line-height: .95; letter-spac
 .areaDim { fill: rgba(249,248,244,.72); stroke: rgba(255,255,255,.28); stroke-width: 1; pointer-events: none; transition: opacity .2s ease; }
 .areaFocus {
   pointer-events: none;
-  stroke-width: 1.35;
+  stroke-width: 1.15;
   vector-effect: non-scaling-stroke;
   transition: fill .18s ease, stroke .18s ease, opacity .18s ease, filter .18s ease;
 }
-.areaFocus.selected { opacity: .82; }
+.areaFocus.selected { opacity: 1; fill: transparent !important; }
 .areaFocus.hovering { opacity: 1; }
 .areaFocus.area-a { fill: rgba(255,122,61,.11); stroke: var(--area-a); }
 .areaFocus.area-b { fill: rgba(112,88,255,.10); stroke: var(--area-b); }
 .areaFocus.area-c { fill: rgba(236,79,150,.10); stroke: var(--area-c); }
-.areaFocus.selected.area-a { filter: drop-shadow(0 0 3px rgba(255,122,61,.55)) drop-shadow(0 0 10px rgba(255,122,61,.28)); }
-.areaFocus.selected.area-b { filter: drop-shadow(0 0 3px rgba(112,88,255,.55)) drop-shadow(0 0 10px rgba(112,88,255,.28)); }
-.areaFocus.selected.area-c { filter: drop-shadow(0 0 3px rgba(236,79,150,.55)) drop-shadow(0 0 10px rgba(236,79,150,.28)); }
+.areaFocus.selected.area-a {
+  stroke: color-mix(in srgb, var(--area-a) 72%, transparent);
+  filter: drop-shadow(0 0 2px rgba(255,122,61,.45)) drop-shadow(0 0 7px rgba(255,122,61,.36)) drop-shadow(0 0 16px rgba(255,122,61,.18));
+}
+.areaFocus.selected.area-b {
+  stroke: color-mix(in srgb, var(--area-b) 72%, transparent);
+  filter: drop-shadow(0 0 2px rgba(112,88,255,.45)) drop-shadow(0 0 7px rgba(112,88,255,.36)) drop-shadow(0 0 16px rgba(112,88,255,.18));
+}
+.areaFocus.selected.area-c {
+  stroke: color-mix(in srgb, var(--area-c) 72%, transparent);
+  filter: drop-shadow(0 0 2px rgba(236,79,150,.45)) drop-shadow(0 0 7px rgba(236,79,150,.36)) drop-shadow(0 0 16px rgba(236,79,150,.18));
+}
 .areaHit { fill: transparent; stroke: transparent; stroke-width: 9; cursor: pointer; outline: none; }
 .areaHit:focus { stroke: transparent; stroke-dasharray: none; }
 .areaMapLabel { display: none; }
