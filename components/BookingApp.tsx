@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, TouchEvent as ReactTouchEvent, useEffect, useMemo, useRef, useState } from "react";
 import { PAGE_SIZE, stands, Stand } from "@/lib/stands";
 import { euro } from "@/lib/money";
 import PdfStandplan from "@/components/PdfStandplan";
@@ -11,6 +11,7 @@ type StandCount = 1 | 2;
 type MeterFilter = "all" | "2" | "3";
 
 const sections: Section[] = ["A", "B", "C"];
+const MAX_ZOOM = 3.5;
 
 const sectionInfo: Record<Section, { title: string; text: string }> = {
   A: { title: "Passage", text: "Vor Sonne und Regen geschützt 🙂" },
@@ -45,6 +46,10 @@ function distance(a: Stand, b: Stand) {
   return Math.hypot(ac.x - bc.x, ac.y - bc.y);
 }
 
+function touchDistance(a: Touch, b: Touch) {
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+
 function isMobileMapViewport() {
   return typeof window !== "undefined" && window.innerWidth <= 700;
 }
@@ -60,6 +65,12 @@ export default function BookingApp() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const mapScrollRef = useRef<HTMLDivElement>(null);
+  const pinchRef = useRef<{
+    startDistance: number;
+    startZoom: number;
+    contentX: number;
+    contentY: number;
+  } | null>(null);
 
   const selected = selectedIds.map((id) => stands.find((stand) => stand.id === id)).filter(Boolean) as Stand[];
   const focusSection = hoveredSection || section;
@@ -158,6 +169,7 @@ export default function BookingApp() {
   const freeCount = (value: Section) => freeCandidates(value, meters).length;
 
   function resetMapView() {
+    pinchRef.current = null;
     setZoom(1);
     window.requestAnimationFrame(() => mapScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
   }
@@ -194,7 +206,7 @@ export default function BookingApp() {
     const centerY = scroller && scroller.scrollHeight
       ? (scroller.scrollTop + scroller.clientHeight / 2) / scroller.scrollHeight
       : 0.5;
-    const next = Math.min(3, Math.max(1, Math.round((zoom + direction * 0.25) * 100) / 100));
+    const next = Math.min(MAX_ZOOM, Math.max(1, Math.round((zoom + direction * 0.25) * 100) / 100));
     setZoom(next);
 
     window.requestAnimationFrame(() => {
@@ -208,6 +220,63 @@ export default function BookingApp() {
         });
       });
     });
+  }
+
+  function handlePinchStart(event: ReactTouchEvent<HTMLDivElement>) {
+    if (event.touches.length !== 2) return;
+    const scroller = mapScrollRef.current;
+    if (!scroller) return;
+
+    const first = event.touches[0];
+    const second = event.touches[1];
+    const rect = scroller.getBoundingClientRect();
+    const midpointX = (first.clientX + second.clientX) / 2 - rect.left;
+    const midpointY = (first.clientY + second.clientY) / 2 - rect.top;
+
+    pinchRef.current = {
+      startDistance: touchDistance(first, second),
+      startZoom: zoom,
+      contentX: scroller.scrollWidth ? (scroller.scrollLeft + midpointX) / scroller.scrollWidth : 0.5,
+      contentY: scroller.scrollHeight ? (scroller.scrollTop + midpointY) / scroller.scrollHeight : 0.5,
+    };
+  }
+
+  function handlePinchMove(event: ReactTouchEvent<HTMLDivElement>) {
+    if (event.touches.length !== 2 || !pinchRef.current) return;
+    event.preventDefault();
+
+    const scroller = mapScrollRef.current;
+    if (!scroller) return;
+    const first = event.touches[0];
+    const second = event.touches[1];
+    const currentDistance = touchDistance(first, second);
+    if (!currentDistance || !pinchRef.current.startDistance) return;
+
+    const ratio = currentDistance / pinchRef.current.startDistance;
+    const rawZoom = pinchRef.current.startZoom * ratio;
+    const next = Math.min(MAX_ZOOM, Math.max(1, Math.round(rawZoom * 100) / 100));
+    const anchor = pinchRef.current;
+    const rect = scroller.getBoundingClientRect();
+    const midpointX = (first.clientX + second.clientX) / 2 - rect.left;
+    const midpointY = (first.clientY + second.clientY) / 2 - rect.top;
+
+    setZoom(next);
+    window.requestAnimationFrame(() => {
+      const current = mapScrollRef.current;
+      if (!current) return;
+      if (next <= 1.01) {
+        current.scrollTo({ left: 0, top: 0 });
+        return;
+      }
+      current.scrollTo({
+        left: Math.max(0, anchor.contentX * current.scrollWidth - midpointX),
+        top: Math.max(0, anchor.contentY * current.scrollHeight - midpointY),
+      });
+    });
+  }
+
+  function handlePinchEnd(event: ReactTouchEvent<HTMLDivElement>) {
+    if (event.touches.length < 2) pinchRef.current = null;
   }
 
   function chooseSection(value: Section) {
@@ -353,7 +422,7 @@ export default function BookingApp() {
             <div className="zoomControls" role="group" aria-label="Karte zoomen">
               <button type="button" onClick={() => changeZoom(-1)} disabled={zoom <= 1} aria-label="Karte verkleinern">−</button>
               <button type="button" className="zoomValue" onClick={resetMapView} title="Gesamtansicht">{Math.round(zoom * 100)}%</button>
-              <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= 3} aria-label="Karte vergrößern">+</button>
+              <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= MAX_ZOOM} aria-label="Karte vergrößern">+</button>
               <button type="button" className="fitButton" onClick={resetMapView}>Gesamt</button>
             </div>
           </div>
@@ -375,7 +444,7 @@ export default function BookingApp() {
             <div className="mobileZoomControls" role="group" aria-label="Karte auf dem Handy zoomen">
               <button type="button" onClick={() => changeZoom(-1)} disabled={zoom <= 1} aria-label="Karte verkleinern">−</button>
               <button type="button" className="mobileZoomValue" onClick={resetMapView}>{Math.round(zoom * 100)}%</button>
-              <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= 3} aria-label="Karte vergrößern">+</button>
+              <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= MAX_ZOOM} aria-label="Karte vergrößern">+</button>
               <button type="button" className="mobileFitButton" onClick={resetMapView}>Gesamt</button>
             </div>
 
@@ -387,6 +456,10 @@ export default function BookingApp() {
                 event.preventDefault();
                 changeZoom(event.deltaY > 0 ? -1 : 1);
               }}
+              onTouchStart={handlePinchStart}
+              onTouchMove={handlePinchMove}
+              onTouchEnd={handlePinchEnd}
+              onTouchCancel={handlePinchEnd}
             >
               <div className="mapStage" style={{ width: `${zoom * 100}%` }}>
                 <PdfStandplan />
@@ -466,8 +539,8 @@ export default function BookingApp() {
 
           <p className="mapHint">
             {!section
-              ? "Der ganze Plan ist zuerst sichtbar. Auf dem Handy: Bereich antippen, dann wird automatisch hineingezoomt. Mit + / − weiter zoomen und mit einem Finger verschieben."
-              : "Der vorgeschlagene Stand ist bereits ausgewählt. Mit einem Finger kannst du die vergrößerte Karte verschieben; „Gesamt“ zeigt wieder den ganzen Platz."}
+              ? "Der ganze Plan ist zuerst sichtbar. Auf dem Handy: Bereich antippen, dann wird automatisch hineingezoomt. Danach mit zwei Fingern stufenlos zoomen oder mit + / − nachjustieren."
+              : "Mit zwei Fingern kannst du direkt in die Karte hinein- und herauszoomen. Mit einem Finger verschiebst du den Ausschnitt; „Gesamt“ zeigt wieder den ganzen Platz."}
           </p>
         </section>
 
