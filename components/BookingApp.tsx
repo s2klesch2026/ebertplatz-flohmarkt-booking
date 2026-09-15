@@ -9,6 +9,11 @@ type Availability = "free" | "held" | "booked" | "blocked";
 type Section = "A" | "B" | "C";
 
 const sections: Section[] = ["A", "B", "C"];
+const areaColors: Record<Section, string> = {
+  A: "#F6CF3E",
+  B: "#394F9E",
+  C: "#E63E48",
+};
 
 const sectionInfo: Record<Section, { title: string; text: string; labelX: number; labelY: number }> = {
   A: {
@@ -299,36 +304,86 @@ export default function BookingApp() {
         </section>
 
         <aside className="bookingCard">
-          <div className="areaIntro areaSwitcherPanel">
-            <p className="eyebrow">Platzbereich</p>
-            <h2>{section ? "Bereich wählen oder wechseln" : "Welcher Bereich passt zu dir?"}</h2>
-            <div className="areaCards">
-              {sections.map((value) => (
-                <button
-                  key={value}
-                  className={[
-                    "areaCard",
-                    `area-${value.toLowerCase()}`,
-                    section === value ? "active" : "",
-                    hoveredSection === value ? "hovered" : "",
-                  ].join(" ")}
-                  onMouseEnter={() => setHoveredSection(value)}
-                  onMouseLeave={() => setHoveredSection(null)}
-                  onFocus={() => setHoveredSection(value)}
-                  onBlur={() => setHoveredSection(null)}
-                  onClick={() => chooseSection(value)}
-                >
-                  <span className="areaLetter">{value}</span>
-                  <span className="areaCardCopy">
-                    <strong>{sectionInfo[value].title}</strong>
-                    <span>{sectionInfo[value].text}</span>
-                    <small>{freeCount(value)} Standplätze aktuell frei</small>
-                  </span>
-                  <span className="areaArrow">→</span>
-                </button>
-              ))}
+          {selected && (
+            <div className="standSummary" style={{ borderTop: 0 }}>
+              <div>
+                <p className="eyebrow">Deine Auswahl</p>
+                <h2>Stand {selected.id}</h2>
+                <p>{selected.meters} Meter · Bereich {selected.section}</p>
+              </div>
+              <button className="textButton" onClick={() => setSelectedId(null)}>ändern</button>
             </div>
-          </div>
+          )}
+
+          {selected ? (
+            <div style={{ padding: "13px 20px 15px", borderBottom: "1px solid var(--line)" }}>
+              <p className="eyebrow" style={{ marginBottom: 8 }}>Bereich wechseln</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
+                {sections.map((value) => {
+                  const active = section === value;
+                  const hovered = hoveredSection === value;
+                  const color = areaColors[value];
+                  return (
+                    <button
+                      key={value}
+                      onMouseEnter={() => setHoveredSection(value)}
+                      onMouseLeave={() => setHoveredSection(null)}
+                      onFocus={() => setHoveredSection(value)}
+                      onBlur={() => setHoveredSection(null)}
+                      onClick={() => chooseSection(value)}
+                      style={{
+                        border: `1.5px solid ${color}`,
+                        borderRadius: 11,
+                        padding: "8px 5px 7px",
+                        background: active || hovered ? `${color}1f` : "rgba(255,255,255,.82)",
+                        cursor: active ? "default" : "pointer",
+                        display: "grid",
+                        justifyItems: "center",
+                        gap: 3,
+                        transition: "transform .15s ease, background .15s ease, box-shadow .15s ease",
+                        transform: hovered && !active ? "translateY(-1px)" : "none",
+                        boxShadow: active ? `0 0 0 2px ${color}22` : "none",
+                      }}
+                    >
+                      <strong style={{ color: value === "A" ? "#171717" : color, fontSize: 16 }}>{value}</strong>
+                      <span style={{ fontSize: 10.5, color: "#5d5d57", lineHeight: 1.1 }}>{sectionInfo[value].title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="areaIntro areaSwitcherPanel">
+              <p className="eyebrow">Platzbereich</p>
+              <h2>{section ? "Bereich wählen oder wechseln" : "Welcher Bereich passt zu dir?"}</h2>
+              <div className="areaCards">
+                {sections.map((value) => (
+                  <button
+                    key={value}
+                    className={[
+                      "areaCard",
+                      `area-${value.toLowerCase()}`,
+                      section === value ? "active" : "",
+                      hoveredSection === value ? "hovered" : "",
+                    ].join(" ")}
+                    onMouseEnter={() => setHoveredSection(value)}
+                    onMouseLeave={() => setHoveredSection(null)}
+                    onFocus={() => setHoveredSection(value)}
+                    onBlur={() => setHoveredSection(null)}
+                    onClick={() => chooseSection(value)}
+                  >
+                    <span className="areaLetter">{value}</span>
+                    <span className="areaCardCopy">
+                      <strong>{sectionInfo[value].title}</strong>
+                      <span>{sectionInfo[value].text}</span>
+                      <small>{freeCount(value)} Standplätze aktuell frei</small>
+                    </span>
+                    <span className="areaArrow">→</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {!section ? (
             <div className="emptyState areaChooseHint">
@@ -346,15 +401,6 @@ export default function BookingApp() {
             </div>
           ) : (
             <>
-              <div className="standSummary">
-                <div>
-                  <p className="eyebrow">Deine Auswahl</p>
-                  <h2>Stand {selected.id}</h2>
-                  <p>{selected.meters} Meter · Bereich {selected.section}</p>
-                </div>
-                <button className="textButton" onClick={() => setSelectedId(null)}>ändern</button>
-              </div>
-
               <div className="priceBox">
                 <div><span>{selected.meters} Meter Stand</span><strong>{euro(selected.priceCents)}</strong></div>
                 <div><span>Müllkaution</span><strong>{euro(selected.depositCents)}</strong></div>
