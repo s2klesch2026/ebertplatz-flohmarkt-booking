@@ -73,35 +73,23 @@ export default function MobileStandConfirm() {
   };
 
   return (
-    <div className="standSheetLayer" role="presentation">
-      <button className="standSheetBackdrop" type="button" aria-label="Schließen" onClick={() => setPending(null)} />
-      <section className="standSheet" role="dialog" aria-modal="true" aria-label={`${pending.id} auswählen`}>
-        <div className="standSheetHandle" aria-hidden="true" />
+    <div className="standSheetLayer" aria-live="polite">
+      <section className="standSheet" aria-label={`${pending.id} auswählen`}>
+        <div className="standSheetCopy">
+          <span className="standSheetKicker">{pending.selected ? "Ausgewählt" : "Freier Stand"}</span>
+          <strong>{pending.id}</strong>
+          <span className="standSheetMeta">{[pending.meters, pending.price].filter(Boolean).join(" · ")}</span>
+        </div>
+
+        <button
+          className={`standSheetPrimary ${pending.selected ? "remove" : ""}`}
+          type="button"
+          onClick={confirm}
+        >
+          {pending.selected ? "Entfernen" : "Auswählen"}
+        </button>
+
         <button className="standSheetClose" type="button" onClick={() => setPending(null)} aria-label="Schließen">×</button>
-
-        <p className="standSheetKicker">{pending.selected ? "Deine Auswahl" : "Freier Stand"}</p>
-        <div className="standSheetHeadline">
-          <div>
-            <h2>{pending.id}</h2>
-            <p>{[pending.meters, pending.price].filter(Boolean).join(" · ")}</p>
-          </div>
-          <span className={`standSheetStatus ${pending.selected ? "selected" : ""}`}>
-            {pending.selected ? "ausgewählt" : "frei"}
-          </span>
-        </div>
-
-        <p className="standSheetNote">
-          {pending.selected
-            ? "Diesen Stand wieder aus deiner Auswahl nehmen?"
-            : "Passt der Platz? Dann übernimm ihn in deine Buchung."}
-        </p>
-
-        <div className="standSheetActions">
-          <button className="standSheetSecondary" type="button" onClick={() => setPending(null)}>Weiter schauen</button>
-          <button className={`standSheetPrimary ${pending.selected ? "remove" : ""}`} type="button" onClick={confirm}>
-            {pending.selected ? "Stand entfernen" : "Stand auswählen"}
-          </button>
-        </div>
       </section>
     </div>
   );
