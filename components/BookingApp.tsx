@@ -7,53 +7,101 @@ import PdfStandplan from "@/components/PdfStandplan";
 
 type Availability = "free" | "held" | "booked" | "blocked";
 type Section = "A" | "B" | "C";
+type StandCount = 1 | 2;
+type MeterFilter = "all" | "2" | "3";
 
 const sections: Section[] = ["A", "B", "C"];
-const areaColors: Record<Section, string> = {
-  A: "#F6CF3E",
-  B: "#394F9E",
-  C: "#E63E48",
+
+const sectionInfo: Record<Section, { title: string; text: string }> = {
+  A: { title: "Passage", text: "Vor Sonne und Regen geschützt 🙂" },
+  B: { title: "Tiefebene", text: "Hier ist die Musik unseres Flohmarkt DJs am besten zu hören, Tanzlaune garantiert!" },
+  C: { title: "Hochebene", text: "Brunnengeplätscher und Kaffeeduft aus dem Gastro-Container" },
 };
 
-const sectionInfo: Record<Section, { title: string; text: string; labelX: number; labelY: number }> = {
-  A: {
-    title: "Passage",
-    text: "Vor Sonne und Regen geschützt 🙂",
-    labelX: 292,
-    labelY: 205,
-  },
-  B: {
-    title: "Tiefebene",
-    text: "Hier ist die Musik unseres Flohmarkt DJs am besten zu hören, Tanzlaune garantiert!",
-    labelX: 350,
-    labelY: 405,
-  },
-  C: {
-    title: "Hochebene",
-    text: "Brunnengeplätscher und Kaffeeduft aus dem Gastro-Container",
-    labelX: 580,
-    labelY: 410,
-  },
-};
-
-// Die drei Flächen entsprechen den schwarzen Strichellinien im Original-Standplan.
 const sectionPaths: Record<Section, string> = {
   A: "M 208.632 252.188 C 205.675 256.985 204.747 262.760 206.053 268.242 C 212.346 294.654 231.814 376.368 244.801 430.876 C 246.811 439.313 253.753 445.677 262.332 446.949 C 270.911 448.220 279.400 444.143 283.771 436.653 C 323.952 367.791 395.546 245.098 397.633 241.520 C 397.664 241.467 397.695 241.413 397.726 241.360 C 398.970 239.184 425.163 193.381 440.178 167.125 C 445.921 157.084 442.563 144.293 432.628 138.367 C 407.764 123.536 363.019 96.846 338.119 81.993 C 328.159 76.051 315.272 79.208 309.186 89.081 C 284.526 129.081 225.564 224.723 208.632 252.188 Z",
   B: "M 420.311 264.316 C 415.557 260.153 409.195 258.325 402.956 259.331 C 396.717 260.336 391.251 264.070 388.045 269.516 C 356.322 323.405 276.327 459.298 260.010 487.017 C 258.089 490.280 257.077 493.996 257.077 497.782 L 257.077 513.302 C 257.077 518.930 259.312 524.327 263.292 528.307 C 267.271 532.286 272.669 534.522 278.296 534.522 L 425.180 534.522 C 436.900 534.522 446.400 525.021 446.400 513.302 L 446.400 296.786 C 446.400 290.670 443.761 284.852 439.160 280.823 C 434.063 276.359 426.986 270.161 420.311 264.316 Z",
   C: "M 468.804 280.125 C 463.955 280.125 459.304 282.052 455.876 285.480 C 452.447 288.909 450.521 293.560 450.521 298.409 L 450.521 541.439 C 450.521 551.537 458.706 559.722 468.804 559.722 L 737.247 559.722 C 747.345 559.722 755.530 551.537 755.530 541.439 L 755.530 511.963 C 755.530 507.114 753.604 502.464 750.175 499.035 C 746.747 495.606 742.096 493.680 737.247 493.680 L 655.178 493.680 C 650.329 493.680 645.679 491.754 642.250 488.325 C 638.821 484.896 636.895 480.246 636.895 475.397 L 636.895 298.409 C 636.895 293.560 634.969 288.909 631.540 285.480 C 628.111 282.052 623.461 280.125 618.612 280.125 Z",
 };
 
+function naturalStandSort(a: Stand, b: Stand) {
+  return a.id.localeCompare(b.id, "de", { numeric: true });
+}
+
+function center(stand: Stand) {
+  const points = stand.points;
+  const usable = points.length > 1 && points[0][0] === points[points.length - 1][0] && points[0][1] === points[points.length - 1][1]
+    ? points.slice(0, -1)
+    : points;
+  return {
+    x: usable.reduce((sum, point) => sum + point[0], 0) / usable.length,
+    y: usable.reduce((sum, point) => sum + point[1], 0) / usable.length,
+  };
+}
+
+function distance(a: Stand, b: Stand) {
+  const ac = center(a);
+  const bc = center(b);
+  return Math.hypot(ac.x - bc.x, ac.y - bc.y);
+}
+
 export default function BookingApp() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [standCount, setStandCountState] = useState<StandCount>(1);
   const [section, setSection] = useState<Section | null>(null);
   const [hoveredSection, setHoveredSection] = useState<Section | null>(null);
-  const [meters, setMeters] = useState<"all" | "2" | "3">("all");
+  const [meters, setMeters] = useState<MeterFilter>("all");
   const [statuses, setStatuses] = useState<Record<string, Availability>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const selected = stands.find((stand) => stand.id === selectedId) || null;
+  const selected = selectedIds.map((id) => stands.find((stand) => stand.id === id)).filter(Boolean) as Stand[];
   const focusSection = hoveredSection || section;
+  const selectedTotal = selected.reduce((sum, stand) => sum + stand.priceCents + stand.depositCents, 0);
+  const selectedSubtotal = selected.reduce((sum, stand) => sum + stand.priceCents, 0);
+  const selectedDeposit = selected.reduce((sum, stand) => sum + stand.depositCents, 0);
+
+  const availability = (stand: Stand): Availability => statuses[stand.id] || "free";
+
+  const freeCandidates = (value: Section, filter: MeterFilter = meters) =>
+    stands
+      .filter((stand) => stand.section === value)
+      .filter((stand) => filter === "all" || String(stand.meters) === filter)
+      .filter((stand) => availability(stand) === "free")
+      .sort(naturalStandSort);
+
+  const autoPick = (value: Section, count: StandCount, filter: MeterFilter = meters, keepId?: string) => {
+    const candidates = freeCandidates(value, filter);
+    if (!candidates.length) return [];
+
+    if (count === 1) {
+      if (keepId && candidates.some((stand) => stand.id === keepId)) return [keepId];
+      return [candidates[0].id];
+    }
+
+    if (keepId) {
+      const first = candidates.find((stand) => stand.id === keepId);
+      if (first) {
+        const second = candidates
+          .filter((stand) => stand.id !== keepId)
+          .sort((a, b) => distance(first, a) - distance(first, b))[0];
+        return second ? [keepId, second.id] : [keepId];
+      }
+    }
+
+    let best: [Stand, Stand] | null = null;
+    let bestDistance = Infinity;
+    for (let i = 0; i < candidates.length; i += 1) {
+      for (let j = i + 1; j < candidates.length; j += 1) {
+        const current = distance(candidates[i], candidates[j]);
+        if (current < bestDistance) {
+          bestDistance = current;
+          best = [candidates[i], candidates[j]];
+        }
+      }
+    }
+    return best ? best.map((stand) => stand.id) : [candidates[0].id];
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +112,7 @@ export default function BookingApp() {
         const json = await res.json();
         if (!cancelled && json.statuses) setStatuses(json.statuses);
       } catch {
-        // Die API validiert die Verfügbarkeit beim Buchen zusätzlich atomar.
+        // Server validates availability atomically again at checkout.
       }
     };
 
@@ -77,11 +125,18 @@ export default function BookingApp() {
   }, []);
 
   useEffect(() => {
-    if (selectedId && statuses[selectedId] && statuses[selectedId] !== "free") {
-      setSelectedId(null);
-      setMessage("Dieser Stand ist inzwischen nicht mehr verfügbar. Bitte wähle einen anderen Platz.");
-    }
-  }, [statuses, selectedId]);
+    if (!selectedIds.length) return;
+    const unavailable = selectedIds.filter((id) => statuses[id] && statuses[id] !== "free");
+    if (!unavailable.length) return;
+
+    const stillFree = selectedIds.filter((id) => !statuses[id] || statuses[id] === "free");
+    setSelectedIds(stillFree);
+    setMessage(
+      unavailable.length === 1
+        ? `Stand ${unavailable[0]} ist inzwischen nicht mehr verfügbar. Bitte wähle einen anderen.`
+        : "Ein Teil deiner Auswahl ist inzwischen nicht mehr verfügbar. Bitte ergänze deine Auswahl."
+    );
+  }, [statuses, selectedIds]);
 
   const visible = useMemo(
     () =>
@@ -94,29 +149,79 @@ export default function BookingApp() {
     [section, meters]
   );
 
-  const availability = (stand: Stand): Availability => statuses[stand.id] || "free";
-
   const freeCount = (value: Section) =>
     stands.filter((stand) => stand.section === value && availability(stand) === "free").length;
 
   function chooseSection(value: Section) {
-    if (section === value) return;
+    const keep = section === value ? selectedIds[0] : undefined;
     setSection(value);
     setHoveredSection(null);
-    setSelectedId(null);
-    setMeters("all");
     setMessage(null);
+    setSelectedIds(autoPick(value, standCount, meters, keep));
+  }
+
+  function setStandCount(value: StandCount) {
+    setStandCountState(value);
+    setMessage(null);
+    if (!section) {
+      setSelectedIds([]);
+      return;
+    }
+
+    const next = autoPick(section, value, meters, selectedIds[0]);
+    setSelectedIds(next);
+    if (value === 2 && next.length < 2) {
+      setMessage("In diesem Bereich ist gerade kein zweiter passender freier Stand verfügbar.");
+    }
+  }
+
+  function setMeterFilter(value: MeterFilter) {
+    setMeters(value);
+    setMessage(null);
+    if (section) {
+      const next = autoPick(section, standCount, value);
+      setSelectedIds(next);
+      if (next.length < standCount) {
+        setMessage("Für diesen Größenfilter sind aktuell nicht genug freie Stände verfügbar.");
+      }
+    }
+  }
+
+  function selectStand(stand: Stand) {
+    if (!section || stand.section !== section || availability(stand) !== "free" || !visible.has(stand.id)) return;
+    setMessage(null);
+
+    if (selectedIds.includes(stand.id)) {
+      setSelectedIds(selectedIds.filter((id) => id !== stand.id));
+      return;
+    }
+
+    if (standCount === 1) {
+      setSelectedIds([stand.id]);
+      return;
+    }
+
+    if (selectedIds.length < 2) {
+      setSelectedIds([...selectedIds, stand.id]);
+      return;
+    }
+
+    setSelectedIds([selectedIds[0], stand.id]);
   }
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!selected) return;
+    if (selected.length !== standCount) {
+      setMessage(`Bitte wähle ${standCount === 1 ? "einen Stand" : "zwei Stände"} aus.`);
+      return;
+    }
+
     setBusy(true);
     setMessage(null);
 
     const form = new FormData(e.currentTarget);
     const payload = {
-      standId: selected.id,
+      standIds: selected.map((stand) => stand.id),
       firstName: String(form.get("firstName") || ""),
       lastName: String(form.get("lastName") || ""),
       email: String(form.get("email") || ""),
@@ -153,20 +258,20 @@ export default function BookingApp() {
   return (
     <main>
       <header className="hero">
-        <a className="brand" href="https://www.ebertplatz-flohmarkt.de/">
-          Flohmarkt<br />am Ebertplatz
+        <a className="brandLogo" href="https://www.ebertplatz-flohmarkt.de/" aria-label="Flohmarkt am Ebertplatz">
+          <img src="/flohmarkt-logo.svg" alt="Flohmarkt am Ebertplatz" />
         </a>
-        <div>
+        <div className="heroCopy">
           <p className="eyebrow">Standplatz buchen</p>
           <h1>Such dir deinen Platz aus.</h1>
-          <p className="heroText">Flohmarkt am Ebertplatz · 19.09.2026 · 11–16 Uhr</p>
+          <p className="heroText">19.09.2026 · 11–16 Uhr · Ebertplatz Köln</p>
         </div>
       </header>
 
       <section className="steps" aria-label="Buchungsablauf">
-        <span className={!section ? "active" : "done"}><b>1</b> Bereich wählen</span>
-        <span className={section && !selected ? "active" : section ? "done" : ""}><b>2</b> Stand wählen</span>
-        <span className={selected ? "active" : ""}><b>3</b> Daten & PayPal</span>
+        <span className={!section ? "active" : "done"}><b>1</b> Bereich</span>
+        <span className={section && selected.length < standCount ? "active" : section ? "done" : ""}><b>2</b> Stand</span>
+        <span className={selected.length === standCount ? "active" : ""}><b>3</b> Daten & PayPal</span>
         <span><b>4</b> Fertig</span>
       </section>
 
@@ -175,26 +280,27 @@ export default function BookingApp() {
           <div className="toolbar">
             <span className="toolbarPrompt">
               {section
-                ? `Bereich ${section} ausgewählt – A, B oder C auf der Karte anklicken, um direkt zu wechseln.`
-                : "1. Fahre über A, B oder C und wähle deinen Bereich."}
+                ? `Bereich ${section} · ${standCount === 1 ? "1 Stand" : "2 Stände"} ausgewählt. Du kannst die Auswahl direkt im Plan ändern.`
+                : "Fahre über A, B oder C und wähle deinen Bereich."}
             </span>
             {section && (
               <div className="filterGroup">
-                <button className={meters === "all" ? "chip active" : "chip"} onClick={() => setMeters("all")}>Alle Größen</button>
-                <button className={meters === "2" ? "chip active" : "chip"} onClick={() => setMeters("2")}>2 m</button>
-                <button className={meters === "3" ? "chip active" : "chip"} onClick={() => setMeters("3")}>3 m</button>
+                <button className={meters === "all" ? "chip active" : "chip"} onClick={() => setMeterFilter("all")}>Alle Größen</button>
+                <button className={meters === "2" ? "chip active" : "chip"} onClick={() => setMeterFilter("2")}>2 m</button>
+                <button className={meters === "3" ? "chip active" : "chip"} onClick={() => setMeterFilter("3")}>3 m</button>
               </div>
             )}
           </div>
 
           <div className="legend">
             {!section ? (
-              <span>Die Flächen folgen exakt den schwarzen Strichellinien im Plan.</span>
+              <span>Die Karte ist bewusst reduziert – die farbigen Halos zeigen dir den aktiven Bereich.</span>
             ) : (
               <>
-                <span><i className="dot green" /> 3 m · 22,50 €</span>
-                <span><i className="dot yellow" /> 2 m · 15,00 €</span>
-                <span><i className="dot gray" /> nicht verfügbar</span>
+                <span><i className="dot free" /> frei</span>
+                <span><i className="dot selectedDot" /> ausgewählt</span>
+                <span><i className="dot unavailable" /> nicht verfügbar</span>
+                <span className="priceLegend">2 m · 15 € &nbsp; / &nbsp; 3 m · 22,50 €</span>
               </>
             )}
           </div>
@@ -225,48 +331,30 @@ export default function BookingApp() {
                   />
                 )}
 
-                {sections.map((value) => {
-                  const isSelectedArea = section === value;
-                  const isFocused = focusSection === value;
-                  return (
-                    <g key={value}>
-                      <path
-                        d={sectionPaths[value]}
-                        className={`areaHit ${isFocused ? "focused" : ""}`}
-                        tabIndex={isSelectedArea ? -1 : 0}
-                        role="button"
-                        aria-label={`Bereich ${value}: ${sectionInfo[value].title}. ${sectionInfo[value].text}`}
-                        style={{ pointerEvents: isSelectedArea ? "none" : "auto" }}
-                        onMouseEnter={() => setHoveredSection(value)}
-                        onMouseLeave={() => setHoveredSection(null)}
-                        onFocus={() => setHoveredSection(value)}
-                        onBlur={() => setHoveredSection(null)}
-                        onClick={() => chooseSection(value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") chooseSection(value);
-                        }}
-                      />
-
-                      {isFocused && (
-                        <g
-                          className={`areaMapLabel area-${value.toLowerCase()}`}
-                          transform={`translate(${sectionInfo[value].labelX} ${sectionInfo[value].labelY})`}
-                          pointerEvents="none"
-                        >
-                          <rect x="-48" y="-15" width="96" height="30" rx="15" />
-                          <text textAnchor="middle" dominantBaseline="central">
-                            {value} · {sectionInfo[value].title}
-                          </text>
-                        </g>
-                      )}
-                    </g>
-                  );
-                })}
+                {sections.map((value) => (
+                  <path
+                    key={value}
+                    d={sectionPaths[value]}
+                    className={`areaHit ${focusSection === value ? "focused" : ""}`}
+                    tabIndex={section === value ? -1 : 0}
+                    role="button"
+                    aria-label={`Bereich ${value}: ${sectionInfo[value].title}. ${sectionInfo[value].text}`}
+                    style={{ pointerEvents: section === value ? "none" : "auto" }}
+                    onMouseEnter={() => setHoveredSection(value)}
+                    onMouseLeave={() => setHoveredSection(null)}
+                    onFocus={() => setHoveredSection(value)}
+                    onBlur={() => setHoveredSection(null)}
+                    onClick={() => chooseSection(value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") chooseSection(value);
+                    }}
+                  />
+                ))}
 
                 {section && stands.map((stand) => {
                   const state = availability(stand);
                   const isVisible = visible.has(stand.id);
-                  const isSelected = stand.id === selectedId;
+                  const isSelected = selectedIds.includes(stand.id);
                   const points = stand.points.map((point) => point.join(",")).join(" ");
 
                   return (
@@ -276,18 +364,15 @@ export default function BookingApp() {
                       tabIndex={state === "free" && isVisible ? 0 : -1}
                       role="button"
                       aria-label={`${stand.id}, ${stand.meters} Meter, ${euro(stand.priceCents)}, ${state === "free" ? "frei" : "nicht verfügbar"}`}
-                      className={["standHit", `state-${state}`, isSelected ? "selected" : "", isVisible ? "" : "filtered"].join(" ")}
-                      onClick={() => {
-                        if (state === "free" && isVisible) {
-                          setMessage(null);
-                          setSelectedId(stand.id);
-                        }
-                      }}
+                      className={[
+                        "standHit",
+                        `state-${state}`,
+                        isSelected ? "selected" : "",
+                        isVisible ? "" : "filtered",
+                      ].join(" ")}
+                      onClick={() => selectStand(stand)}
                       onKeyDown={(e) => {
-                        if ((e.key === "Enter" || e.key === " ") && state === "free" && isVisible) {
-                          setMessage(null);
-                          setSelectedId(stand.id);
-                        }
+                        if ((e.key === "Enter" || e.key === " ") && state === "free" && isVisible) selectStand(stand);
                       }}
                     />
                   );
@@ -298,114 +383,114 @@ export default function BookingApp() {
 
           <p className="mapHint">
             {!section
-              ? "Beim Hover treten die anderen Bereiche zurück. Klick auf einen Bereich, danach kannst du dort direkt deinen Stand auswählen."
-              : `Bereich ${section} ist aktiv. Du kannst trotzdem jederzeit direkt auf einen anderen Bereich klicken.`}
+              ? "Bereich anklicken – danach ist automatisch ein freier Stand vorausgewählt."
+              : "Die Vorauswahl ist nur ein Vorschlag. Klicke auf freie Standnummern, wenn du einen anderen Platz möchtest."}
           </p>
         </section>
 
         <aside className="bookingCard">
-          {selected && (
-            <div className="standSummary" style={{ borderTop: 0 }}>
+          {selected.length > 0 && (
+            <div className="standSummary">
               <div>
                 <p className="eyebrow">Deine Auswahl</p>
-                <h2>Stand {selected.id}</h2>
-                <p>{selected.meters} Meter · Bereich {selected.section}</p>
+                <h2>{selected.map((stand) => `Stand ${stand.id}`).join(" + ")}</h2>
+                <p>
+                  Bereich {selected[0].section} · {selected.map((stand) => `${stand.meters} m`).join(" + ")}
+                </p>
               </div>
-              <button className="textButton" onClick={() => setSelectedId(null)}>ändern</button>
+              <button className="textButton" onClick={() => setSelectedIds([])}>ändern</button>
             </div>
           )}
 
-          {selected ? (
-            <div style={{ padding: "13px 20px 15px", borderBottom: "1px solid var(--line)" }}>
-              <p className="eyebrow" style={{ marginBottom: 8 }}>Bereich wechseln</p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
-                {sections.map((value) => {
-                  const active = section === value;
-                  const hovered = hoveredSection === value;
-                  const color = areaColors[value];
-                  return (
+          <div className={selected.length ? "compactControls" : "setupControls"}>
+            <div className="countRow">
+              <div>
+                <p className="eyebrow">Wie viel Platz?</p>
+                <strong>{standCount === 1 ? "Ein Stand" : "Zwei Stände"}</strong>
+              </div>
+              <div className="segmented" role="group" aria-label="Anzahl Standplätze">
+                <button className={standCount === 1 ? "active" : ""} onClick={() => setStandCount(1)}>1</button>
+                <button className={standCount === 2 ? "active" : ""} onClick={() => setStandCount(2)}>2</button>
+              </div>
+            </div>
+
+            {selected.length ? (
+              <div className="miniAreaSwitch">
+                <span>Bereich</span>
+                <div>
+                  {sections.map((value) => (
                     <button
                       key={value}
+                      className={`miniArea area-${value.toLowerCase()} ${section === value ? "active" : ""}`}
+                      onMouseEnter={() => setHoveredSection(value)}
+                      onMouseLeave={() => setHoveredSection(null)}
+                      onClick={() => chooseSection(value)}
+                    >
+                      <b>{value}</b>
+                      <small>{sectionInfo[value].title}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="areaIntro areaSwitcherPanel">
+                <p className="eyebrow">Platzbereich</p>
+                <h2>{section ? "Bereich wechseln" : "Welcher Bereich passt zu dir?"}</h2>
+                <div className="areaCards">
+                  {sections.map((value) => (
+                    <button
+                      key={value}
+                      className={[
+                        "areaCard",
+                        `area-${value.toLowerCase()}`,
+                        section === value ? "active" : "",
+                        hoveredSection === value ? "hovered" : "",
+                      ].join(" ")}
                       onMouseEnter={() => setHoveredSection(value)}
                       onMouseLeave={() => setHoveredSection(null)}
                       onFocus={() => setHoveredSection(value)}
                       onBlur={() => setHoveredSection(null)}
                       onClick={() => chooseSection(value)}
-                      style={{
-                        border: `1.5px solid ${color}`,
-                        borderRadius: 11,
-                        padding: "8px 5px 7px",
-                        background: active || hovered ? `${color}1f` : "rgba(255,255,255,.82)",
-                        cursor: active ? "default" : "pointer",
-                        display: "grid",
-                        justifyItems: "center",
-                        gap: 3,
-                        transition: "transform .15s ease, background .15s ease, box-shadow .15s ease",
-                        transform: hovered && !active ? "translateY(-1px)" : "none",
-                        boxShadow: active ? `0 0 0 2px ${color}22` : "none",
-                      }}
                     >
-                      <strong style={{ color: value === "A" ? "#171717" : color, fontSize: 16 }}>{value}</strong>
-                      <span style={{ fontSize: 10.5, color: "#5d5d57", lineHeight: 1.1 }}>{sectionInfo[value].title}</span>
+                      <span className="areaLetter">{value}</span>
+                      <span className="areaCardCopy">
+                        <strong>{sectionInfo[value].title}</strong>
+                        <span>{sectionInfo[value].text}</span>
+                        <small>{freeCount(value)} Standplätze aktuell frei</small>
+                      </span>
+                      <span className="areaArrow">→</span>
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="areaIntro areaSwitcherPanel">
-              <p className="eyebrow">Platzbereich</p>
-              <h2>{section ? "Bereich wählen oder wechseln" : "Welcher Bereich passt zu dir?"}</h2>
-              <div className="areaCards">
-                {sections.map((value) => (
-                  <button
-                    key={value}
-                    className={[
-                      "areaCard",
-                      `area-${value.toLowerCase()}`,
-                      section === value ? "active" : "",
-                      hoveredSection === value ? "hovered" : "",
-                    ].join(" ")}
-                    onMouseEnter={() => setHoveredSection(value)}
-                    onMouseLeave={() => setHoveredSection(null)}
-                    onFocus={() => setHoveredSection(value)}
-                    onBlur={() => setHoveredSection(null)}
-                    onClick={() => chooseSection(value)}
-                  >
-                    <span className="areaLetter">{value}</span>
-                    <span className="areaCardCopy">
-                      <strong>{sectionInfo[value].title}</strong>
-                      <span>{sectionInfo[value].text}</span>
-                      <small>{freeCount(value)} Standplätze aktuell frei</small>
-                    </span>
-                    <span className="areaArrow">→</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {!section ? (
             <div className="emptyState areaChooseHint">
               <span className="bigArrow">↖</span>
-              <h2>Erst einen Bereich anklicken.</h2>
-              <p>Danach werden die einzelnen Standplätze in diesem Bereich auswählbar.</p>
+              <h2>Wähle zuerst einen Bereich.</h2>
+              <p>Wir schlagen dir dort automatisch einen freien Stand vor.</p>
             </div>
-          ) : !selected ? (
+          ) : selected.length < standCount ? (
             <div className="emptyState standStep">
-              <span className="bigArrow">↖</span>
-              <p className="eyebrow">Schritt 2</p>
-              <h2>Jetzt den Stand auswählen.</h2>
-              <p>Klicke direkt auf eine freie Standnummer in Bereich {section}.</p>
+              <p className="eyebrow">Auswahl ergänzen</p>
+              <h2>{standCount === 2 ? "Noch einen Stand auswählen." : "Stand auswählen."}</h2>
+              <p>Klicke direkt auf eine freie Standnummer im Plan.</p>
               {message && <p className="error">{message}</p>}
             </div>
           ) : (
             <>
               <div className="priceBox">
-                <div><span>{selected.meters} Meter Stand</span><strong>{euro(selected.priceCents)}</strong></div>
-                <div><span>Müllkaution</span><strong>{euro(selected.depositCents)}</strong></div>
-                <div className="total"><span>Gesamt</span><strong>{euro(selected.priceCents + selected.depositCents)}</strong></div>
-                <small>Die Kaution kann nach dem Flohmarkt zurückerstattet werden.</small>
+                {selected.map((stand) => (
+                  <div key={stand.id}>
+                    <span>Stand {stand.id} · {stand.meters} m</span>
+                    <strong>{euro(stand.priceCents)}</strong>
+                  </div>
+                ))}
+                <div><span>Müllkaution{selected.length > 1 ? ` (${selected.length}×)` : ""}</span><strong>{euro(selectedDeposit)}</strong></div>
+                <div className="total"><span>Gesamt</span><strong>{euro(selectedTotal)}</strong></div>
+                <small>Standgebühr {euro(selectedSubtotal)} · Die Kaution kann nach dem Flohmarkt zurückerstattet werden.</small>
               </div>
 
               <form onSubmit={submit} className="bookingForm">
@@ -426,9 +511,9 @@ export default function BookingApp() {
                 </label>
                 {message && <p className="error">{message}</p>}
                 <button className="paypalButton" disabled={busy} type="submit">
-                  {busy ? "Einen Moment …" : "Mit PayPal bezahlen"}
+                  {busy ? "Einen Moment …" : `Mit PayPal ${euro(selectedTotal)} bezahlen`}
                 </button>
-                <p className="holdNote">Dein Stand wird beim Start der Zahlung 10 Minuten für dich reserviert.</p>
+                <p className="holdNote">{selected.length === 1 ? "Dein Stand" : "Deine Stände"} werden beim Start der Zahlung 10 Minuten für dich reserviert.</p>
               </form>
             </>
           )}
