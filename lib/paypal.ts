@@ -26,11 +26,13 @@ async function accessToken() {
 export async function createPayPalOrder(args: {
   bookingId: string;
   totalCents: number;
-  standId: string;
+  standIds: string[];
   returnUrl: string;
   cancelUrl: string;
 }) {
   const token = await accessToken();
+  const standLabel = args.standIds.join(" + ");
+
   const res = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
     method: "POST",
     headers: {
@@ -44,7 +46,7 @@ export async function createPayPalOrder(args: {
         {
           reference_id: args.bookingId,
           custom_id: args.bookingId,
-          description: `Flohmarkt am Ebertplatz – Stand ${args.standId}`,
+          description: `Flohmarkt am Ebertplatz – Stand ${standLabel}`,
           amount: {
             currency_code: "EUR",
             value: (args.totalCents / 100).toFixed(2),
@@ -65,6 +67,7 @@ export async function createPayPalOrder(args: {
     }),
     cache: "no-store",
   });
+
   const json = await res.json();
   if (!res.ok) throw new Error(json?.message || "Could not create PayPal order");
   return json as { id: string; links?: { href: string; rel: string }[] };
