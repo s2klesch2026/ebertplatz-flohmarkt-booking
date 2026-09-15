@@ -22,6 +22,12 @@ export async function GET(request: Request) {
     if (!booking || booking.paypal_order_id !== orderId) throw new Error("Order mismatch");
     if (booking.status === "paid") return NextResponse.redirect(`${appUrl}/success?booking=${bookingId}`);
 
+    // Atomically make sure this booking still owns the stand before money is captured.
+    const { error: holdError } = await supabase.rpc("prepare_booking_capture", {
+      p_booking_id: bookingId,
+    });
+    if (holdError) throw holdError;
+
     const capture = await capturePayPalOrder(orderId);
     const captureData = capture?.purchase_units?.[0]?.payments?.captures?.[0];
     const paidValue = Math.round(Number(captureData?.amount?.value || "0") * 100);
