@@ -1,59 +1,65 @@
 :global(:root) {
   --paper: #f5f0e6;
-  --area-a: #a8cf3a;
-  --area-b: #4b55e7;
-  --area-c: #f20b7a;
+  --area-a: #b7d93d;
+  --area-b: #4c50df;
+  --area-c: #ff0a78;
+}
+
+:global(body) {
+  background:
+    radial-gradient(circle at 15% 8%, rgba(255,255,255,.78), transparent 26rem),
+    #f5f0e6;
 }
 
 :global(.brand) {
-  color: #4b55e7;
+  color: #4c50df;
 }
 
 :global(.eyebrow),
 :global(.toolbarPrompt) {
-  color: #4b55e7;
+  color: #4c50df;
 }
 
 :global(.steps span.active) {
-  background: #4b55e7;
+  background: #4c50df;
   color: #fff;
-  border-color: #4b55e7;
-  box-shadow: 0 7px 18px rgba(75, 85, 231, .18);
+  border-color: #4c50df;
+  box-shadow: 0 7px 18px rgba(76, 80, 223, .18);
 }
 
 :global(.steps span.done) {
-  background: rgba(168, 207, 58, .2);
-  border-color: rgba(168, 207, 58, .5);
+  background: rgba(183, 217, 61, .22);
+  border-color: rgba(183, 217, 61, .55);
   color: #202018;
 }
 
 :global(.chip.active) {
-  background: #4b55e7;
-  border-color: #4b55e7;
+  background: #4c50df;
+  border-color: #4c50df;
   color: #fff;
 }
 
 :global(.bigArrow) {
-  color: #f20b7a;
+  color: #ff0a78;
 }
 
 :global(.areaFocus.area-a) {
-  fill: rgba(168, 207, 58, .18);
-  stroke: #91b62d;
+  fill: rgba(183, 217, 61, .2);
+  stroke: #9fbe2f;
 }
 
 :global(.areaFocus.area-b) {
-  fill: rgba(75, 85, 231, .15);
-  stroke: #4b55e7;
+  fill: rgba(76, 80, 223, .16);
+  stroke: #4c50df;
 }
 
 :global(.areaFocus.area-c) {
-  fill: rgba(242, 11, 122, .14);
-  stroke: #f20b7a;
+  fill: rgba(255, 10, 120, .15);
+  stroke: #ff0a78;
 }
 
 :global(.areaMapLabel.area-a rect) {
-  fill: #a8cf3a;
+  fill: #b7d93d;
 }
 
 :global(.areaMapLabel.area-a text) {
@@ -61,11 +67,11 @@
 }
 
 :global(.areaMapLabel.area-b rect) {
-  fill: #4b55e7;
+  fill: #4c50df;
 }
 
 :global(.areaMapLabel.area-c rect) {
-  fill: #f20b7a;
+  fill: #ff0a78;
 }
 
 :global(.areaCard.area-a .areaLetter) {
@@ -73,8 +79,8 @@
 }
 
 :global(.bookingForm input:focus) {
-  border-color: #4b55e7;
-  box-shadow: 0 0 0 3px rgba(75, 85, 231, .13);
+  border-color: #4c50df;
+  box-shadow: 0 0 0 3px rgba(76, 80, 223, .13);
 }
 
 .hoverFrost {
@@ -90,45 +96,33 @@
 .hoverFrostLayer {
   width: 100%;
   height: 100%;
-  background: rgba(245, 240, 230, .57);
-  backdrop-filter: blur(2.7px) saturate(.72) brightness(1.05);
-  -webkit-backdrop-filter: blur(2.7px) saturate(.72) brightness(1.05);
+  background: rgba(245, 240, 230, .64);
+  backdrop-filter: blur(3.2px) saturate(.62) brightness(1.06);
+  -webkit-backdrop-filter: blur(3.2px) saturate(.62) brightness(1.06);
 }
 
 .areaHoverPopup {
   position: absolute;
   z-index: 8;
-  width: min(250px, 30vw);
+  width: min(235px, 27vw);
   min-width: 205px;
-  transform: translate(-50%, -50%) rotate(-.5deg);
+  transform: translate(-50%, -50%) rotate(-.45deg);
   display: grid;
   gap: 5px;
-  padding: 14px 15px 13px;
-  background: rgba(255, 255, 255, .95);
+  padding: 13px 14px 12px;
+  background: rgba(255, 255, 255, .96);
   color: #171717;
-  border: 2px solid;
-  border-radius: 14px;
-  box-shadow: 0 14px 34px rgba(23, 23, 23, .17);
+  border: 2px solid currentColor;
+  border-radius: 13px;
+  box-shadow: 0 14px 34px rgba(23, 23, 23, .16);
   pointer-events: none;
   line-height: 1.25;
-}
-
-.areaHoverPopup::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -8px;
-  width: 14px;
-  height: 14px;
-  background: rgba(255, 255, 255, .95);
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: translateX(-50%) rotate(45deg);
 }
 
 .areaHoverPopup strong {
   font-size: 18px;
   letter-spacing: -.02em;
+  color: #171717;
 }
 
 .areaHoverPopup > span:not(.areaHoverKicker) {
@@ -154,36 +148,36 @@
 }
 
 .areaA {
-  color: #91b62d;
+  color: #9fbe2f;
 }
 
 .areaA .areaHoverKicker {
-  background: #a8cf3a;
+  background: #b7d93d;
   color: #171717;
 }
 
 .areaB {
-  color: #4b55e7;
+  color: #4c50df;
 }
 
 .areaB .areaHoverKicker {
-  background: #4b55e7;
+  background: #4c50df;
   color: #fff;
 }
 
 .areaC {
-  color: #f20b7a;
+  color: #ff0a78;
 }
 
 .areaC .areaHoverKicker {
-  background: #f20b7a;
+  background: #ff0a78;
   color: #fff;
 }
 
 @media (max-width: 950px) {
   .areaHoverPopup {
-    width: 225px;
-    min-width: 190px;
-    padding: 12px 13px;
+    width: 215px;
+    min-width: 185px;
+    padding: 11px 12px;
   }
 }
