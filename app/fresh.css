@@ -1,0 +1,296 @@
+:root {
+  --kkc-blue: #394F9E;
+  --kkc-blue-light: #969CCE;
+  --kkc-yellow: #F6CF3E;
+  --kkc-yellow-light: #FAE79D;
+  --kkc-green: #4CB379;
+  --kkc-green-light: #93CDB5;
+  --kkc-red: #E63E48;
+  --kkc-red-light: #F39FA6;
+  --fresh-bg: #F6F8FB;
+  --fresh-card: rgba(255,255,255,.94);
+  --fresh-line: rgba(57,79,158,.12);
+  --fresh-shadow: 0 18px 55px rgba(38,49,91,.09);
+}
+
+html {
+  background: var(--fresh-bg) !important;
+}
+
+body {
+  position: relative;
+  background:
+    radial-gradient(circle at 8% 4%, rgba(76,179,121,.13), transparent 24rem),
+    radial-gradient(circle at 94% 6%, rgba(57,79,158,.10), transparent 26rem),
+    radial-gradient(circle at 82% 92%, rgba(246,207,62,.10), transparent 22rem),
+    linear-gradient(180deg, #FBFCFE 0%, #F5F8FB 100%) !important;
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(12px);
+}
+
+body::before {
+  width: 180px;
+  height: 180px;
+  left: -70px;
+  top: 38vh;
+  background: rgba(230,62,72,.055);
+}
+
+body::after {
+  width: 220px;
+  height: 220px;
+  right: -105px;
+  top: 42vh;
+  background: rgba(76,179,121,.075);
+}
+
+main {
+  padding-top: 24px !important;
+}
+
+.hero {
+  grid-template-columns: minmax(220px, 300px) 1fr !important;
+  gap: clamp(28px, 4vw, 64px) !important;
+  align-items: center !important;
+  margin-bottom: 18px !important;
+}
+
+.brand {
+  width: min(290px, 100%);
+  height: 124px;
+  display: block !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+  background: url('/flohmarkt-logo.svg') left center / contain no-repeat;
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+.brand:hover {
+  transform: translateY(-2px) !important;
+  opacity: .92;
+}
+
+.hero > div {
+  position: relative;
+  max-width: 820px;
+  padding-left: 20px;
+}
+
+.hero > div::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--kkc-blue) 0 30%, var(--kkc-green) 30% 58%, var(--kkc-yellow) 58% 80%, var(--kkc-red) 80% 100%);
+}
+
+.eyebrow {
+  color: var(--kkc-blue) !important;
+  letter-spacing: .11em !important;
+  font-size: 11px !important;
+}
+
+h1 {
+  font-size: clamp(30px, 4vw, 54px) !important;
+  line-height: .98 !important;
+  letter-spacing: -.045em !important;
+}
+
+.heroText {
+  margin-top: 8px !important;
+  color: #667085 !important;
+  font-size: 14px;
+}
+
+.steps {
+  margin-bottom: 16px !important;
+  gap: 8px !important;
+}
+
+.steps span {
+  background: rgba(255,255,255,.72) !important;
+  border-color: var(--fresh-line) !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 3px 12px rgba(38,49,91,.035);
+  font-weight: 700;
+}
+
+.steps span.active {
+  background: var(--kkc-blue) !important;
+  color: white !important;
+  border-color: var(--kkc-blue) !important;
+  box-shadow: 0 8px 22px rgba(57,79,158,.20) !important;
+}
+
+.steps span.done {
+  background: rgba(76,179,121,.12) !important;
+  border-color: rgba(76,179,121,.30) !important;
+  color: #246747 !important;
+}
+
+.workspace {
+  gap: 16px !important;
+}
+
+.mapCard,
+.bookingCard {
+  background: var(--fresh-card) !important;
+  border: 1px solid var(--fresh-line) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--fresh-shadow) !important;
+  backdrop-filter: blur(12px);
+}
+
+.toolbar,
+.legend {
+  background: rgba(255,255,255,.74);
+  border-color: rgba(57,79,158,.10) !important;
+}
+
+.toolbar {
+  padding: 13px 15px !important;
+}
+
+.toolbarPrompt {
+  color: var(--kkc-blue) !important;
+}
+
+.chip {
+  border-color: rgba(57,79,158,.14) !important;
+  box-shadow: none;
+}
+
+.chip:hover {
+  border-color: rgba(57,79,158,.35) !important;
+}
+
+.chip.active {
+  background: var(--kkc-blue) !important;
+  color: white !important;
+  border-color: var(--kkc-blue) !important;
+}
+
+.mapScroll {
+  background: #F1F4F8 !important;
+}
+
+.mapStage {
+  background: #F7F9FB !important;
+}
+
+.mapHint {
+  background: rgba(255,255,255,.70);
+  border-color: rgba(57,79,158,.09) !important;
+}
+
+.bookingCard {
+  overflow: hidden;
+}
+
+.areaIntro {
+  padding-top: 20px !important;
+}
+
+.areaIntro h2 {
+  font-size: 24px !important;
+}
+
+.areaCard {
+  background: #fff !important;
+  border-color: rgba(57,79,158,.11) !important;
+  box-shadow: 0 4px 14px rgba(38,49,91,.035);
+}
+
+.areaCard:hover,
+.areaCard.hovered {
+  box-shadow: 0 12px 28px rgba(38,49,91,.09) !important;
+}
+
+.areaCard.active {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--area-color) 18%, transparent), 0 10px 26px rgba(38,49,91,.07) !important;
+}
+
+.standSummary {
+  background: linear-gradient(135deg, rgba(76,179,121,.10), rgba(255,255,255,.92) 48%, rgba(57,79,158,.06));
+  border-color: rgba(57,79,158,.10) !important;
+}
+
+.standSummary h2 {
+  font-size: 32px !important;
+}
+
+.textButton {
+  color: var(--kkc-blue);
+  font-weight: 800;
+  text-underline-offset: 3px;
+}
+
+.priceBox {
+  background: linear-gradient(135deg, rgba(76,179,121,.09), rgba(147,205,181,.12)) !important;
+  border: 1px solid rgba(76,179,121,.16);
+}
+
+.bookingForm input:not([type="checkbox"]) {
+  background: #FCFDFE !important;
+  border-color: rgba(57,79,158,.14) !important;
+}
+
+.bookingForm input:focus {
+  border-color: var(--kkc-blue) !important;
+  box-shadow: 0 0 0 3px rgba(57,79,158,.11) !important;
+}
+
+.emptyState {
+  background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(247,249,252,.92));
+}
+
+.paypalButton {
+  box-shadow: 0 8px 20px rgba(17,17,17,.10);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.paypalButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 11px 24px rgba(17,17,17,.14);
+}
+
+@media (max-width: 950px) {
+  .hero {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .brand {
+    width: 240px;
+    height: 104px;
+  }
+
+  .hero > div {
+    padding-left: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand {
+    width: 210px;
+    height: 90px;
+  }
+
+  h1 {
+    font-size: 34px !important;
+  }
+}
