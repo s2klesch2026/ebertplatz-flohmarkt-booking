@@ -1,21 +1,47 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { PAGE_SIZE, stands, Stand } from "@/lib/stands";
 import { euro } from "@/lib/money";
 
 type Availability = "free" | "held" | "booked" | "blocked";
 
-const demoBooked = new Set<string>();
-
 export default function BookingApp() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [section, setSection] = useState<"all" | "A" | "B" | "C">("all");
   const [meters, setMeters] = useState<"all" | "2" | "3">("all");
+  const [statuses, setStatuses] = useState<Record<string, Availability>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const selected = stands.find((s) => s.id === selectedId) || null;
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const res = await fetch("/api/availability", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled && json.statuses) setStatuses(json.statuses);
+      } catch {
+        // The server still validates availability atomically when booking.
+      }
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedId && statuses[selectedId] && statuses[selectedId] !== "free") {
+      setSelectedId(null);
+      setMessage("Dieser Stand ist inzwischen nicht mehr verfügbar. Bitte wähle einen anderen Platz.");
+    }
+  }, [statuses, selectedId]);
 
   const visible = useMemo(
     () =>
@@ -28,10 +54,7 @@ export default function BookingApp() {
     [section, meters]
   );
 
-  const availability = (_stand: Stand): Availability => {
-    if (demoBooked.has(_stand.id)) return "booked";
-    return "free";
-  };
+  const availability = (stand: Stand): Availability => statuses[stand.id] || "free";
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -82,9 +105,7 @@ export default function BookingApp() {
         <div>
           <p className="eyebrow">Standplatz buchen</p>
           <h1>Such dir deinen Platz aus.</h1>
-          <p className="heroText">
-            Flohmarkt am Ebertplatz · 19.09.2026 · 11–16 Uhr
-          </p>
+          <p className="heroText">Flohmarkt am Ebertplatz · 19.09.2026 · 11–16 Uhr</p>
         </div>
       </header>
 
@@ -100,7 +121,7 @@ export default function BookingApp() {
           <div className="toolbar">
             <div className="filterGroup">
               <button className={section === "all" ? "chip active" : "chip"} onClick={() => setSection("all")}>Alle</button>
-              {(["A","B","C"] as const).map((value) => (
+              {(["A", "B", "C"] as const).map((value) => (
                 <button key={value} className={section === value ? "chip active" : "chip"} onClick={() => setSection(value)}>
                   Bereich {value}
                 </button>
@@ -121,13 +142,8 @@ export default function BookingApp() {
 
           <div className="mapScroll">
             <div className="mapStage">
-              <img src="/standplan.jpg" alt="Standplan des Flohmarkts am Ebertplatz" />
-              <svg
-                viewBox={`0 0 ${PAGE_SIZE.width} ${PAGE_SIZE.height}`}
-                className="standOverlay"
-                role="group"
-                aria-label="Buchbare Standplätze"
-              >
+              <img src="/standplan.webp" alt="Standplan des Flohmarkts am Ebertplatz" />
+              <svg viewBox={`0 0 ${PAGE_SIZE.width} ${PAGE_SIZE.height}`} className="standOverlay" role="group" aria-label="Buchbare Standplätze">
                 {stands.map((stand) => {
                   const state = availability(stand);
                   const isVisible = visible.has(stand.id);
@@ -140,15 +156,18 @@ export default function BookingApp() {
                       tabIndex={state === "free" ? 0 : -1}
                       role="button"
                       aria-label={`${stand.id}, ${stand.meters} Meter, ${euro(stand.priceCents)}, ${state === "free" ? "frei" : "nicht verfügbar"}`}
-                      className={[
-                        "standHit",
-                        `state-${state}`,
-                        isSelected ? "selected" : "",
-                        isVisible ? "" : "filtered",
-                      ].join(" ")}
-                      onClick={() => state === "free" && isVisible && setSelectedId(stand.id)}
+                      className={["standHit", `state-${state}`, isSelected ? "selected" : "", isVisible ? "" : "filtered"].join(" ")}
+                      onClick={() => {
+                        if (state === "free" && isVisible) {
+                          setMessage(null);
+                          setSelectedId(stand.id);
+                        }
+                      }}
                       onKeyDown={(e) => {
-                        if ((e.key === "Enter" || e.key === " ") && state === "free" && isVisible) setSelectedId(stand.id);
+                        if ((e.key === "Enter" || e.key === " ") && state === "free" && isVisible) {
+                          setMessage(null);
+                          setSelectedId(stand.id);
+                        }
                       }}
                     />
                   );
@@ -156,7 +175,7 @@ export default function BookingApp() {
               </svg>
             </div>
           </div>
-          <p className="mapHint">Tipp: Auf dem Handy kannst du den Plan seitlich bewegen und hineinzoomen.</p>
+          <p className="mapHint">Tipp: Auf dem Handy kannst du den Plan seitlich bewegen und hineinzoomen. Die Verfügbarkeit aktualisiert sich automatisch.</p>
         </section>
 
         <aside className="bookingCard">
@@ -165,6 +184,7 @@ export default function BookingApp() {
               <span className="bigArrow">↖</span>
               <h2>Wähle einen freien Stand aus.</h2>
               <p>Klicke einfach direkt auf die gewünschte Standnummer im Plan.</p>
+              {message && <p className="error">{message}</p>}
             </div>
           ) : (
             <>
