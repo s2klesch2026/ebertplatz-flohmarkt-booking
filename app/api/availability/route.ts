@@ -21,15 +21,21 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("bookings")
-    .select("stand_id,status")
+    .select("stand_id,stand_ids,status")
     .eq("event_slug", eventSlug)
     .in("status", ["held", "paid"]);
 
-  if (error) return NextResponse.json({ error: "Verfügbarkeit konnte nicht geladen werden." }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: "Verfügbarkeit konnte nicht geladen werden." }, { status: 500 });
+  }
 
-  const statuses = Object.fromEntries(
-    (data || []).map((row) => [row.stand_id, row.status === "paid" ? "booked" : "held"])
-  );
+  const statuses: Record<string, "held" | "booked"> = {};
+  for (const row of data || []) {
+    const ids = Array.isArray(row.stand_ids) && row.stand_ids.length ? row.stand_ids : [row.stand_id];
+    for (const id of ids) {
+      statuses[id] = row.status === "paid" ? "booked" : "held";
+    }
+  }
 
   return NextResponse.json(
     { statuses, configured: true },
