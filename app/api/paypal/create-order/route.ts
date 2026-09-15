@@ -28,6 +28,29 @@ export async function POST(request: Request) {
       : [booking.stand_id];
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+
+  // Während der Prototyp-Phase läuft PayPal standardmäßig als interne Demo.
+  // Später PAYPAL_DEMO=false setzen, um echte Sandbox-/Live-Orders zu verwenden.
+  const useDemo = process.env.PAYPAL_DEMO !== "false";
+  if (useDemo) {
+    const demoOrderId = `DEMO-${booking.id}`;
+    const { error: saveError } = await supabase.rpc("set_paypal_order", {
+      p_booking_id: booking.id,
+      p_paypal_order_id: demoOrderId,
+    });
+    if (saveError) {
+      return NextResponse.json(
+        { error: "Die Demo-Zahlung konnte nicht mit der Buchung verknüpft werden." },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json({
+      approveUrl: `${appUrl}/checkout/demo?booking=${booking.id}`,
+      demo: true,
+    });
+  }
+
   const order = await createPayPalOrder({
     bookingId: booking.id,
     totalCents: booking.total_cents,
@@ -54,5 +77,5 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ approveUrl });
+  return NextResponse.json({ approveUrl, demo: false });
 }
