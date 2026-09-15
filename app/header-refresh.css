@@ -1,0 +1,272 @@
+:root {
+  --header-ink: #171a22;
+}
+
+/* Header: ruhiger, kompakter, ohne den vierfarbigen Balken */
+.hero {
+  grid-template-columns: minmax(180px, 235px) minmax(0, 1fr) !important;
+  gap: clamp(30px, 4vw, 54px) !important;
+  align-items: center !important;
+  margin-bottom: 10px !important;
+  padding: 5px 0 2px;
+}
+
+.brandLogo {
+  width: min(225px, 100%) !important;
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+.brandLogo:hover {
+  transform: translateY(-2px);
+  opacity: .92;
+}
+
+.hero > div,
+.heroCopy {
+  max-width: 720px !important;
+  padding-left: 0 !important;
+}
+
+.hero > div::before,
+.heroCopy::before {
+  display: none !important;
+  content: none !important;
+}
+
+.hero .eyebrow {
+  margin: 0 0 8px !important;
+  color: var(--kkc-blue) !important;
+  font-size: 10.5px !important;
+  letter-spacing: .15em !important;
+}
+
+.hero h1 {
+  max-width: 700px;
+  font-size: clamp(36px, 3.4vw, 50px) !important;
+  line-height: .98 !important;
+  letter-spacing: -.043em !important;
+  color: var(--header-ink);
+}
+
+.heroText {
+  display: inline-flex;
+  align-items: center;
+  margin: 12px 0 0 !important;
+  padding: 7px 10px 7px 9px;
+  border: 1px solid rgba(57,79,158,.11);
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  box-shadow: 0 3px 12px rgba(38,49,91,.035);
+  color: #667085 !important;
+  font-size: 12.5px !important;
+  font-weight: 750 !important;
+}
+
+.heroText::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--kkc-green);
+  box-shadow: 0 0 0 4px rgba(76,179,121,.12);
+}
+
+.steps {
+  margin: 0 auto 18px !important;
+  gap: 4px !important;
+}
+
+.steps span {
+  border: 0 !important;
+  border-radius: 10px !important;
+  padding: 7px 10px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #7a8290;
+  font-size: 11.5px !important;
+  font-weight: 750;
+}
+
+.steps span b {
+  width: 20px;
+  height: 20px;
+  margin-right: 6px !important;
+  border: 1px solid #dce1e8;
+  border-radius: 50%;
+  background: white;
+  font-size: 10px;
+}
+
+.steps span.active {
+  background: rgba(57,79,158,.075) !important;
+  color: var(--kkc-blue) !important;
+}
+
+.steps span.active b {
+  background: var(--kkc-blue);
+  border-color: var(--kkc-blue);
+  color: white;
+}
+
+.steps span.done {
+  background: transparent !important;
+  color: #397b5a !important;
+}
+
+.steps span.done b {
+  background: rgba(76,179,121,.14);
+  border-color: rgba(76,179,121,.35);
+  color: #28704e;
+}
+
+/* Interner PayPal-Demo-Checkout */
+.demoPayPalPage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px 18px;
+  background: #f5f7fa;
+}
+
+.demoPayPalCard {
+  width: min(460px, 100%);
+  overflow: hidden;
+  border: 1px solid #dfe4ea;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 22px 65px rgba(25,35,52,.12);
+}
+
+.demoPayPalHead {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.demoPayPalBrand {
+  margin: 0;
+  color: #003087;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -.035em;
+}
+
+.demoPayPalBadge {
+  display: inline-flex;
+  margin-bottom: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff2bd;
+  color: #5c4900;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.demoPayPalBody {
+  padding: 22px 24px 24px;
+}
+
+.demoPayPalBody h1 {
+  margin: 0 0 7px;
+  font-size: 25px !important;
+  letter-spacing: -.025em !important;
+}
+
+.demoPayPalBody p {
+  color: #667085;
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.demoPayPalOrder {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #e5e9ef;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.demoPayPalOrder > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+.demoPayPalOrder .demoTotal {
+  margin-top: 6px;
+  padding-top: 11px;
+  border-top: 1px solid #dde2e8;
+  font-size: 17px;
+}
+
+.demoPayPalButton {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 18px;
+  background: #ffc439;
+  color: #111;
+  cursor: pointer;
+  font-weight: 900;
+  transition: transform .15s ease, filter .15s ease;
+}
+
+.demoPayPalButton:hover {
+  transform: translateY(-1px);
+  filter: brightness(.98);
+}
+
+.demoPayPalCancel {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  color: #657084;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.demoPayPalNote {
+  margin-top: 14px !important;
+  color: #8a6200 !important;
+  font-size: 11px !important;
+  text-align: center;
+}
+
+@media (max-width: 950px) {
+  .hero {
+    grid-template-columns: 1fr !important;
+    gap: 13px !important;
+  }
+
+  .brandLogo {
+    width: 205px !important;
+  }
+
+  .hero h1 {
+    font-size: clamp(34px, 8vw, 46px) !important;
+  }
+
+  .heroText {
+    margin-top: 10px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .brandLogo {
+    width: 185px !important;
+  }
+
+  .hero h1 {
+    font-size: 34px !important;
+  }
+
+  .steps span {
+    padding: 6px 7px !important;
+    font-size: 10.5px !important;
+  }
+}
