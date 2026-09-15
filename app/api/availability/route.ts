@@ -9,54 +9,26 @@ export async function GET() {
     return NextResponse.json({ statuses: {}, configured: false });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-  const { data: event, error: eventError } = await supabase
-    .from("events")
-    .select("id")
-    .eq("active", true)
-    .gte("event_date", today)
-    .order("event_date", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const eventSlug = process.env.FLOHMARKT_EVENT_SLUG || "2026-09-19";
+  const now = new Date().toISOString();
 
-  if (eventError) return NextResponse.json({ error: eventError.message }, { status: 500 });
-  if (!event) return NextResponse.json({ statuses: {}, configured: true });
+  await supabase
+    .from("bookings")
+    .update({ status: "expired", updated_at: now })
+    .eq("event_slug", eventSlug)
+    .eq("status", "held")
+    .lte("held_until", now);
 
   const { data, error } = await supabase
-    .from("event_stands")
-    .select("stand_id,status,held_until,booking_id")
-    .eq("event_id", event.id);
+    .from("bookings")
+    .select("stand_id,status")
+    .eq("event_slug", eventSlug)
+    .in("status", ["held", "paid"]);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Verfügbarkeit konnte nicht geladen werden." }, { status: 500 });
 
-  const now = Date.now();
-  const expired = (data || []).filter(
-    (row) => row.status === "held" && row.held_until && new Date(row.held_until).getTime() <= now
-  );
-
-  if (expired.length) {
-    await Promise.all(
-      expired.map(async (row) => {
-        await supabase
-          .from("event_stands")
-          .update({ status: "free", held_until: null, booking_id: null })
-          .eq("event_id", event.id)
-          .eq("stand_id", row.stand_id)
-          .eq("status", "held");
-        if (row.booking_id) {
-          await supabase
-            .from("bookings")
-            .update({ status: "expired" })
-            .eq("id", row.booking_id)
-            .eq("status", "held");
-        }
-      })
-    );
-  }
-
-  const expiredIds = new Set(expired.map((row) => row.stand_id));
   const statuses = Object.fromEntries(
-    (data || []).map((row) => [row.stand_id, expiredIds.has(row.stand_id) ? "free" : row.status])
+    (data || []).map((row) => [row.stand_id, row.status === "paid" ? "booked" : "held"])
   );
 
   return NextResponse.json(
