@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json(
-      { error: "Die Buchungsdatenbank ist noch nicht verbunden. Der Standplan funktioniert bereits; Supabase wird gerade eingerichtet." },
+      { error: "Die Buchungsdatenbank ist noch nicht vollständig mit Vercel verbunden." },
       { status: 503 }
     );
   }
@@ -30,12 +30,15 @@ export async function POST(request: Request) {
     p_street: String(body.street).trim(),
     p_postal_code: String(body.postalCode).trim(),
     p_city: String(body.city).trim(),
+    p_subtotal_cents: stand.priceCents,
+    p_deposit_cents: stand.depositCents,
+    p_event_slug: process.env.FLOHMARKT_EVENT_SLUG || "2026-09-19",
   });
 
   if (error) {
     const isUnavailable = error.message.includes("STAND_NOT_AVAILABLE");
     return NextResponse.json(
-      { error: isUnavailable ? "Dieser Stand wurde gerade von jemand anderem reserviert. Bitte wähle einen anderen Platz." : error.message },
+      { error: isUnavailable ? "Dieser Stand wurde gerade von jemand anderem reserviert. Bitte wähle einen anderen Platz." : "Die Reservierung konnte nicht angelegt werden." },
       { status: isUnavailable ? 409 : 500 }
     );
   }
