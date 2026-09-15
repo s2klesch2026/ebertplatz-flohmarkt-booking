@@ -1,0 +1,189 @@
+:global(:root) {
+  --paper: #f5f0e6;
+  --area-a: #a8cf3a;
+  --area-b: #4b55e7;
+  --area-c: #f20b7a;
+}
+
+:global(.brand) {
+  color: #4b55e7;
+}
+
+:global(.eyebrow),
+:global(.toolbarPrompt) {
+  color: #4b55e7;
+}
+
+:global(.steps span.active) {
+  background: #4b55e7;
+  color: #fff;
+  border-color: #4b55e7;
+  box-shadow: 0 7px 18px rgba(75, 85, 231, .18);
+}
+
+:global(.steps span.done) {
+  background: rgba(168, 207, 58, .2);
+  border-color: rgba(168, 207, 58, .5);
+  color: #202018;
+}
+
+:global(.chip.active) {
+  background: #4b55e7;
+  border-color: #4b55e7;
+  color: #fff;
+}
+
+:global(.bigArrow) {
+  color: #f20b7a;
+}
+
+:global(.areaFocus.area-a) {
+  fill: rgba(168, 207, 58, .18);
+  stroke: #91b62d;
+}
+
+:global(.areaFocus.area-b) {
+  fill: rgba(75, 85, 231, .15);
+  stroke: #4b55e7;
+}
+
+:global(.areaFocus.area-c) {
+  fill: rgba(242, 11, 122, .14);
+  stroke: #f20b7a;
+}
+
+:global(.areaMapLabel.area-a rect) {
+  fill: #a8cf3a;
+}
+
+:global(.areaMapLabel.area-a text) {
+  fill: #171717;
+}
+
+:global(.areaMapLabel.area-b rect) {
+  fill: #4b55e7;
+}
+
+:global(.areaMapLabel.area-c rect) {
+  fill: #f20b7a;
+}
+
+:global(.areaCard.area-a .areaLetter) {
+  color: #171717;
+}
+
+:global(.bookingForm input:focus) {
+  border-color: #4b55e7;
+  box-shadow: 0 0 0 3px rgba(75, 85, 231, .13);
+}
+
+.hoverFrost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.hoverFrostLayer {
+  width: 100%;
+  height: 100%;
+  background: rgba(245, 240, 230, .57);
+  backdrop-filter: blur(2.7px) saturate(.72) brightness(1.05);
+  -webkit-backdrop-filter: blur(2.7px) saturate(.72) brightness(1.05);
+}
+
+.areaHoverPopup {
+  position: absolute;
+  z-index: 8;
+  width: min(250px, 30vw);
+  min-width: 205px;
+  transform: translate(-50%, -50%) rotate(-.5deg);
+  display: grid;
+  gap: 5px;
+  padding: 14px 15px 13px;
+  background: rgba(255, 255, 255, .95);
+  color: #171717;
+  border: 2px solid;
+  border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(23, 23, 23, .17);
+  pointer-events: none;
+  line-height: 1.25;
+}
+
+.areaHoverPopup::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 255, 255, .95);
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.areaHoverPopup strong {
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+.areaHoverPopup > span:not(.areaHoverKicker) {
+  font-size: 12.5px;
+  color: #4f4f49;
+}
+
+.areaHoverPopup small {
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #777168;
+}
+
+.areaHoverKicker {
+  width: fit-content;
+  padding: 4px 7px 3px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.areaA {
+  color: #91b62d;
+}
+
+.areaA .areaHoverKicker {
+  background: #a8cf3a;
+  color: #171717;
+}
+
+.areaB {
+  color: #4b55e7;
+}
+
+.areaB .areaHoverKicker {
+  background: #4b55e7;
+  color: #fff;
+}
+
+.areaC {
+  color: #f20b7a;
+}
+
+.areaC .areaHoverKicker {
+  background: #f20b7a;
+  color: #fff;
+}
+
+@media (max-width: 950px) {
+  .areaHoverPopup {
+    width: 225px;
+    min-width: 190px;
+    padding: 12px 13px;
+  }
+}
