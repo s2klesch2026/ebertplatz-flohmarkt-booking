@@ -45,6 +45,10 @@ function distance(a: Stand, b: Stand) {
   return Math.hypot(ac.x - bc.x, ac.y - bc.y);
 }
 
+function isMobileMapViewport() {
+  return typeof window !== "undefined" && window.innerWidth <= 700;
+}
+
 export default function BookingApp() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [standCount, setStandCountState] = useState<StandCount>(1);
@@ -158,17 +162,67 @@ export default function BookingApp() {
     window.requestAnimationFrame(() => mapScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" }));
   }
 
+  function focusMapOnStandIds(ids: string[], targetZoom = 1.85) {
+    const targets = ids
+      .map((id) => stands.find((stand) => stand.id === id))
+      .filter(Boolean) as Stand[];
+    if (!targets.length) return;
+
+    const targetCenters = targets.map(center);
+    const point = {
+      x: targetCenters.reduce((sum, item) => sum + item.x, 0) / targetCenters.length,
+      y: targetCenters.reduce((sum, item) => sum + item.y, 0) / targetCenters.length,
+    };
+
+    setZoom(targetZoom);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const scroller = mapScrollRef.current;
+        if (!scroller) return;
+        const left = (point.x / PAGE_SIZE.width) * scroller.scrollWidth - scroller.clientWidth / 2;
+        const top = (point.y / PAGE_SIZE.height) * scroller.scrollHeight - scroller.clientHeight / 2;
+        scroller.scrollTo({ left: Math.max(0, left), top: Math.max(0, top), behavior: "smooth" });
+      });
+    });
+  }
+
   function changeZoom(direction: -1 | 1) {
-    setZoom((current) => Math.min(2.5, Math.max(1, Math.round((current + direction * 0.25) * 100) / 100)));
+    const scroller = mapScrollRef.current;
+    const centerX = scroller && scroller.scrollWidth
+      ? (scroller.scrollLeft + scroller.clientWidth / 2) / scroller.scrollWidth
+      : 0.5;
+    const centerY = scroller && scroller.scrollHeight
+      ? (scroller.scrollTop + scroller.clientHeight / 2) / scroller.scrollHeight
+      : 0.5;
+    const next = Math.min(3, Math.max(1, Math.round((zoom + direction * 0.25) * 100) / 100));
+    setZoom(next);
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const current = mapScrollRef.current;
+        if (!current || next <= 1) return;
+        current.scrollTo({
+          left: Math.max(0, centerX * current.scrollWidth - current.clientWidth / 2),
+          top: Math.max(0, centerY * current.scrollHeight - current.clientHeight / 2),
+          behavior: "smooth",
+        });
+      });
+    });
   }
 
   function chooseSection(value: Section) {
     const keep = section === value ? selectedIds[0] : undefined;
+    const next = autoPick(value, standCount, meters, keep);
     setSection(value);
     setHoveredSection(null);
     setMessage(null);
-    setSelectedIds(autoPick(value, standCount, meters, keep));
-    resetMapView();
+    setSelectedIds(next);
+
+    if (isMobileMapViewport() && next.length) {
+      focusMapOnStandIds(next);
+    } else {
+      resetMapView();
+    }
   }
 
   function setStandCount(value: StandCount) {
@@ -181,6 +235,7 @@ export default function BookingApp() {
 
     const next = autoPick(section, value, meters, selectedIds[0]);
     setSelectedIds(next);
+    if (isMobileMapViewport() && next.length) focusMapOnStandIds(next);
     if (value === 2 && next.length < 2) {
       setMessage("In diesem Bereich ist gerade kein zweiter passender freier Stand verfügbar.");
     }
@@ -192,6 +247,7 @@ export default function BookingApp() {
     if (section) {
       const next = autoPick(section, standCount, value);
       setSelectedIds(next);
+      if (isMobileMapViewport() && next.length) focusMapOnStandIds(next);
       if (next.length < standCount) {
         setMessage("Für diese Standgröße sind aktuell nicht genug freie Plätze verfügbar.");
       }
@@ -297,7 +353,7 @@ export default function BookingApp() {
             <div className="zoomControls" role="group" aria-label="Karte zoomen">
               <button type="button" onClick={() => changeZoom(-1)} disabled={zoom <= 1} aria-label="Karte verkleinern">−</button>
               <button type="button" className="zoomValue" onClick={resetMapView} title="Gesamtansicht">{Math.round(zoom * 100)}%</button>
-              <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= 2.5} aria-label="Karte vergrößern">+</button>
+              <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= 3} aria-label="Karte vergrößern">+</button>
               <button type="button" className="fitButton" onClick={resetMapView}>Gesamt</button>
             </div>
           </div>
@@ -315,94 +371,103 @@ export default function BookingApp() {
             )}
           </div>
 
-          <div
-            ref={mapScrollRef}
-            className={`mapScroll ${zoom > 1 ? "zoomed" : "fitView"}`}
-            onWheel={(event) => {
-              if (!(event.ctrlKey || event.metaKey)) return;
-              event.preventDefault();
-              changeZoom(event.deltaY > 0 ? -1 : 1);
-            }}
-          >
-            <div className="mapStage" style={{ width: `${zoom * 100}%` }}>
-              <PdfStandplan />
-              <svg
-                viewBox={`0 0 ${PAGE_SIZE.width} ${PAGE_SIZE.height}`}
-                className="standOverlay"
-                role="group"
-                aria-label={section ? `Standplätze in Bereich ${section}` : "Platzbereiche A, B und C"}
-              >
-                <defs>
-                  <filter id="softArea" x="-10%" y="-10%" width="120%" height="120%">
-                    <feGaussianBlur stdDeviation="1.35" />
-                  </filter>
-                </defs>
+          <div className="mapViewportWrap">
+            <div className="mobileZoomControls" role="group" aria-label="Karte auf dem Handy zoomen">
+              <button type="button" onClick={() => changeZoom(-1)} disabled={zoom <= 1} aria-label="Karte verkleinern">−</button>
+              <button type="button" className="mobileZoomValue" onClick={resetMapView}>{Math.round(zoom * 100)}%</button>
+              <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= 3} aria-label="Karte vergrößern">+</button>
+              <button type="button" className="mobileFitButton" onClick={resetMapView}>Gesamt</button>
+            </div>
 
-                {focusSection && sections.map((value) => value !== focusSection && (
-                  <path key={`dim-${value}`} d={sectionPaths[value]} className="areaDim" filter="url(#softArea)" />
-                ))}
+            <div
+              ref={mapScrollRef}
+              className={`mapScroll ${zoom > 1 ? "zoomed" : "fitView"}`}
+              onWheel={(event) => {
+                if (!(event.ctrlKey || event.metaKey)) return;
+                event.preventDefault();
+                changeZoom(event.deltaY > 0 ? -1 : 1);
+              }}
+            >
+              <div className="mapStage" style={{ width: `${zoom * 100}%` }}>
+                <PdfStandplan />
+                <svg
+                  viewBox={`0 0 ${PAGE_SIZE.width} ${PAGE_SIZE.height}`}
+                  className="standOverlay"
+                  role="group"
+                  aria-label={section ? `Standplätze in Bereich ${section}` : "Platzbereiche A, B und C"}
+                >
+                  <defs>
+                    <filter id="softArea" x="-10%" y="-10%" width="120%" height="120%">
+                      <feGaussianBlur stdDeviation="1.35" />
+                    </filter>
+                  </defs>
 
-                {focusSection && (
-                  <path
-                    d={sectionPaths[focusSection]}
-                    className={`areaFocus area-${focusSection.toLowerCase()} ${hoveredSection ? "hovering" : "selected"}`}
-                  />
-                )}
+                  {focusSection && sections.map((value) => value !== focusSection && (
+                    <path key={`dim-${value}`} d={sectionPaths[value]} className="areaDim" filter="url(#softArea)" />
+                  ))}
 
-                {sections.map((value) => (
-                  <path
-                    key={value}
-                    d={sectionPaths[value]}
-                    className={`areaHit ${focusSection === value ? "focused" : ""}`}
-                    tabIndex={section === value ? -1 : 0}
-                    role="button"
-                    aria-label={`Bereich ${value}: ${sectionInfo[value].title}. ${sectionInfo[value].text}`}
-                    style={{ pointerEvents: section === value ? "none" : "auto" }}
-                    onMouseEnter={() => setHoveredSection(value)}
-                    onMouseLeave={() => setHoveredSection(null)}
-                    onFocus={() => setHoveredSection(value)}
-                    onBlur={() => setHoveredSection(null)}
-                    onClick={() => chooseSection(value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") chooseSection(value);
-                    }}
-                  />
-                ))}
+                  {focusSection && (
+                    <path
+                      d={sectionPaths[focusSection]}
+                      className={`areaFocus area-${focusSection.toLowerCase()} ${hoveredSection ? "hovering" : "selected"}`}
+                    />
+                  )}
 
-                {section && stands.map((stand) => {
-                  const state = availability(stand);
-                  const isVisible = visible.has(stand.id);
-                  const isSelected = selectedIds.includes(stand.id);
-                  const points = stand.points.map((point) => point.join(",")).join(" ");
-
-                  return (
-                    <polygon
-                      key={stand.id}
-                      points={points}
-                      tabIndex={state === "free" && isVisible ? 0 : -1}
+                  {sections.map((value) => (
+                    <path
+                      key={value}
+                      d={sectionPaths[value]}
+                      className={`areaHit ${focusSection === value ? "focused" : ""}`}
+                      tabIndex={section === value ? -1 : 0}
                       role="button"
-                      aria-label={`${stand.id}, ${stand.meters} Meter, ${euro(stand.priceCents)}, ${state === "free" ? "frei" : "nicht verfügbar"}`}
-                      className={[
-                        "standHit",
-                        `state-${state}`,
-                        isSelected ? "selected" : "",
-                        isVisible ? "" : "filtered",
-                      ].join(" ")}
-                      onClick={() => selectStand(stand)}
+                      aria-label={`Bereich ${value}: ${sectionInfo[value].title}. ${sectionInfo[value].text}`}
+                      style={{ pointerEvents: section === value ? "none" : "auto" }}
+                      onMouseEnter={() => setHoveredSection(value)}
+                      onMouseLeave={() => setHoveredSection(null)}
+                      onFocus={() => setHoveredSection(value)}
+                      onBlur={() => setHoveredSection(null)}
+                      onClick={() => chooseSection(value)}
                       onKeyDown={(e) => {
-                        if ((e.key === "Enter" || e.key === " ") && state === "free" && isVisible) selectStand(stand);
+                        if (e.key === "Enter" || e.key === " ") chooseSection(value);
                       }}
                     />
-                  );
-                })}
-              </svg>
+                  ))}
+
+                  {section && stands.map((stand) => {
+                    const state = availability(stand);
+                    const isVisible = visible.has(stand.id);
+                    const isSelected = selectedIds.includes(stand.id);
+                    const points = stand.points.map((point) => point.join(",")).join(" ");
+
+                    return (
+                      <polygon
+                        key={stand.id}
+                        points={points}
+                        tabIndex={state === "free" && isVisible ? 0 : -1}
+                        role="button"
+                        aria-label={`${stand.id}, ${stand.meters} Meter, ${euro(stand.priceCents)}, ${state === "free" ? "frei" : "nicht verfügbar"}`}
+                        className={[
+                          "standHit",
+                          `state-${state}`,
+                          isSelected ? "selected" : "",
+                          isVisible ? "" : "filtered",
+                        ].join(" ")}
+                        onClick={() => selectStand(stand)}
+                        onKeyDown={(e) => {
+                          if ((e.key === "Enter" || e.key === " ") && state === "free" && isVisible) selectStand(stand);
+                        }}
+                      />
+                    );
+                  })}
+                </svg>
+              </div>
             </div>
           </div>
 
           <p className="mapHint">
             {!section
-              ? "Der ganze Plan bleibt zunächst sichtbar. Wähle einen Bereich oder zoome mit + / −; am Rechner geht auch Strg/⌘ + Scrollen."
-              : "Der vorgeschlagene Stand ist bereits ausgewählt. Du kannst ihn einfach anklicken oder einen anderen freien Stand wählen."}
+              ? "Der ganze Plan ist zuerst sichtbar. Auf dem Handy: Bereich antippen, dann wird automatisch hineingezoomt. Mit + / − weiter zoomen und mit einem Finger verschieben."
+              : "Der vorgeschlagene Stand ist bereits ausgewählt. Mit einem Finger kannst du die vergrößerte Karte verschieben; „Gesamt“ zeigt wieder den ganzen Platz."}
           </p>
         </section>
 
