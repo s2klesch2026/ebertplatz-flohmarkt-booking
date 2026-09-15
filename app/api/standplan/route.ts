@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 
 const PDF_URL = "https://ebertplatz-flohmarkt.de/wp-content/uploads/2026/09/Ebiflomi12_Standplan.pdf";
 
-export const dynamic = "force-static";
-export const revalidate = 86400;
+export const runtime = "nodejs";
 
 export async function GET() {
   const response = await fetch(PDF_URL, {
+    cache: "force-cache",
     next: { revalidate: 86400 },
     headers: { "User-Agent": "Mozilla/5.0" },
   });
