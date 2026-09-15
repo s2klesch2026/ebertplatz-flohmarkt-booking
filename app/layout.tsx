@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./fresh.css";
+import "./header-refresh.css";
 
 export const metadata: Metadata = {
   title: "Stand buchen – Flohmarkt am Ebertplatz",
