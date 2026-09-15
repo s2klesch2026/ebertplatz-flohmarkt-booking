@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { PAGE_SIZE, stands, Stand } from "@/lib/stands";
 import { euro } from "@/lib/money";
+import PdfStandplan from "@/components/PdfStandplan";
 
 type Availability = "free" | "held" | "booked" | "blocked";
 
@@ -142,7 +143,7 @@ export default function BookingApp() {
 
           <div className="mapScroll">
             <div className="mapStage">
-              <img src="/standplan.webp" alt="Standplan des Flohmarkts am Ebertplatz" />
+              <PdfStandplan />
               <svg viewBox={`0 0 ${PAGE_SIZE.width} ${PAGE_SIZE.height}`} className="standOverlay" role="group" aria-label="Buchbare Standplätze">
                 {stands.map((stand) => {
                   const state = availability(stand);
@@ -175,7 +176,7 @@ export default function BookingApp() {
               </svg>
             </div>
           </div>
-          <p className="mapHint">Tipp: Auf dem Handy kannst du den Plan seitlich bewegen und hineinzoomen. Die Verfügbarkeit aktualisiert sich automatisch.</p>
+          <p className="mapHint">Der Plan wird direkt aus der Vektor-PDF gerendert und bleibt dadurch auch auf Retina-Displays scharf. Die Verfügbarkeit aktualisiert sich automatisch.</p>
         </section>
 
         <aside className="bookingCard">
